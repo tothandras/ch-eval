@@ -229,20 +229,44 @@ performance (ADR-0005).
   - Zipf tenant skew (`--namespace-skew`).
   - CI in `.github/workflows/ci.yml`.
 
-**Evidence (local).**
-- **OpenMeter.** Digests match 34/34 (proposal) and 30/30 (baseline) across
-  altinity and upstream on single, 1×2, 1×2-s3 and 2×2. The 2×2 runs used 1
-  and 8 namespaces.
-- **OTel.**
-  - The collector path and the direct mapper store identical data: every
-    table's full-row fingerprint matches, in all six scenarios.
-  - Cross-target parity is green on single and 1×2 for both builds;
-    otel-traces also on 2×2.
-  - The two schema variants agree on every shared query.
-- **Probes.** All 49 pass on altinity 26.3.33.10001 and upstream 26.3.33.24,
-  single and 1×2. No starting hypothesis is contradicted locally.
-- **Tracked runs.** `results/parity/local-*.md` holds the tracked parity run
-  from a clean commit.
+**Evidence (local, all from clean commits in an evidence worktree):**
+- **Parity.** Value digests and full-table fingerprints match across targets
+  for OpenMeter (both scenarios) and all six OTel scenarios:
+  - altinity vs upstream-oss on single and 1×2 (`results/parity/local-*.md`);
+  - altinity single vs 2×2 vs kind (`results/parity/local-sharded-kind-*.md`);
+  - OpenMeter also on 1×2-s3.
+- **OTel ingest paths.** The collector path and the direct mapper store
+  identical data in every table of all six scenarios. The two schema variants
+  agree on every shared query.
+- **Probes.** 50 probes (45 SQL + 5 Go) on altinity single, 1×2, 2×2 and kind,
+  and on upstream single and 1×2. Every expectation was confirmed, none
+  contradicted (`results/probes/`, `docs/feature-matrix.md`). Notable
+  confirmations:
+  - async insert and dedup defaults;
+  - plain MergeTree on a cluster is unreplicated;
+  - the operator profile sets `load_balancing=nearest_hostname` and
+    `prefer_localhost_replica=0`;
+  - `skip_unavailable_shards=1` returns partial data silently.
+- **Replica consistency** (`results/consistency/`). This is local shape only;
+  the numbers are not evidence.
+
+  | Policy | Behaviour |
+  | --- | --- |
+  | Default | about 4–6% of load-balanced reads stale; some totals go backwards; lag p99 about 0.1 s, several seconds across a replica restart |
+  | Quorum with sync inserts | no stale reads, at about 4× the insert p50 |
+  | `SYNC REPLICA … LIGHTWEIGHT` before each read | stale reads about 0 |
+
+  **Quorum with async inserts (the 26.2+ default) is rejected.**
+- **Experiments** (`results/experiments/`):
+
+  | ID | Outcome |
+  | --- | --- |
+  | S3 | default query fails (279); `skip_unavailable_shards=1` silently returned 50,088 of 100,000 rows |
+  | S4 | background Distributed inserts acknowledge before rows are queryable and queue while a shard is down; foreground inserts fail |
+  | R6 | `ON CLUSTER` and Replicated-database DDL both time out (159) with a replica down and apply on its return |
+  | R3 | quorum loss makes tables read-only (242) while SELECT works; inserts recover in 6–9 s |
+- **CI.** GitHub Actions is green, including the Docker smoke job with the
+  parity gate and collector-path parity.
 
 **Findings along the way** (no performance claims):
 - 26.2+ defaults `async_insert=1`, so the harness must set it explicitly.
@@ -254,6 +278,11 @@ performance (ADR-0005).
 - The operator bundle pulls with `imagePullPolicy: Always`. Offline kind nodes
   need a local `IfNotPresent` copy, and that is the only deviation.
 - The forked harness counted untracked `results/` as dirty. This is fixed.
+- Quorum inserts are rejected with async inserts. Through SQL `VALUES` the error
+  is 2. Through clickhouse-go's native batch path, 26.3 raises
+  **LOGICAL_ERROR 49** ("Should be checked earlier"), which looks like the
+  validation being bypassed on that path. It is worth reporting upstream after a
+  minimal reproduction.
 - Local compose tiers filled the sandbox disk through `information`-level
   Docker logs. They now log at `warning`, rotate logs, and keep only the system
   logs the harness reads.
