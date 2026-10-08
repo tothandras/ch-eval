@@ -220,8 +220,14 @@ func Run(ctx context.Context, n Nodes, c Config) (Result, error) {
 				}
 				mu.Lock()
 				res.InsertErrors++
+				first := !strings.Contains(strings.Join(res.Notes, "\n"), err.Error())
+				if first {
+					res.Notes = append(res.Notes, "insert error: "+err.Error())
+				}
 				mu.Unlock()
-				logf("insert batch %d: %v", seq, err)
+				if first { // log each distinct error once
+					logf("insert batch %d: %v", seq, err)
+				}
 				seq-- // retry the same sequence number so the stream stays gap-free
 				continue
 			}
@@ -361,9 +367,6 @@ func Run(ctx context.Context, n Nodes, c Config) (Result, error) {
 	if res.Reads > 0 {
 		res.StaleRate = float64(res.Stale) / float64(res.Reads)
 		res.ViolationsPer10k = 10000 * float64(res.Violations) / float64(res.Reads)
-	}
-	if c.AsyncInsert && c.Policy == Quorum {
-		res.Notes = append(res.Notes, "insert_quorum with async inserts: see insert_errors")
 	}
 	return res, nil
 }

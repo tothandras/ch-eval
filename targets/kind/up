@@ -57,9 +57,13 @@ for pod in $(kubectl get pods -l clickhouse.altinity.com/chi=cheval -o jsonpath=
   echo "$pod" >> "$state/pf-pods"
   i=$((i + 1))
 done
-for _ in $(seq 1 60); do
-  curl -sf "http://127.0.0.1:$((native - 877))/" --data-binary "SELECT 1" >/dev/null 2>&1 && break
-  sleep 1
+# Ready when the cluster lists every host: the operator adds replicas to
+# remote_servers after the CHI reports Completed.
+want=$(( $(jq_ "['shards']") * $(jq_ "['replicas']") ))
+for _ in $(seq 1 120); do
+  n=$(curl -sf "http://127.0.0.1:$((native - 877))/" --data-binary "SELECT count() FROM system.clusters WHERE cluster = '$(jq_ "['cluster']")'" 2>/dev/null || echo 0)
+  [ "$n" = "$want" ] && break
+  sleep 2
 done
 curl -sf "http://127.0.0.1:$((native - 877))/" --data-binary "SELECT 'up', version(), (SELECT count() FROM system.clusters WHERE cluster = '$(jq_ "['cluster']")') FORMAT TSV"
 echo "native port: $native ($i pods forwarded)"

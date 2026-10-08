@@ -18,7 +18,7 @@ for t in "${TARGETS[@]}"; do
     "$BENCH" --target "$t" --workload "$w" --rows "$rows" --iterations 3 --time-end "$TIME_END" --require-clean 2>&1 | grep -E "ERR|^error|seed done|wrote"
   done
 done
-out=results/parity/local-$(date -u +%Y%m%d).md
+out=results/parity/${PARITY_NAME:-local}-$(date -u +%Y%m%d).md
 mkdir -p results/parity
 {
   echo "# Local cross-target parity ($(date -u +%Y-%m-%d))"

@@ -36,8 +36,9 @@ func R6(ctx context.Context, e Env, admin driver.Conn) (Result, error) {
 		fmt.Sprintf("CREATE TABLE %s.ddl_t ON CLUSTER '%s' (k UInt64) ENGINE = MergeTree ORDER BY k", db, cl))
 	oc := r.step("CREATE TABLE ... ON CLUSTER with distributed_ddl_task_timeout=10", t, err, "")
 	t = time.Now()
-	err = admin.Exec(ctx, "CREATE TABLE ch_eval_exp_repl.ddl_t (k UInt64) ENGINE = ReplicatedMergeTree ORDER BY k")
-	rd := r.step("CREATE TABLE in a Replicated database (no ON CLUSTER)", t, err, "")
+	err = admin.Exec(clickhouse.Context(ctx, clickhouse.WithSettings(clickhouse.Settings{"distributed_ddl_task_timeout": 10})),
+		"CREATE TABLE ch_eval_exp_repl.ddl_t (k UInt64) ENGINE = ReplicatedMergeTree ORDER BY k")
+	rd := r.step("CREATE TABLE in a Replicated database (no ON CLUSTER), distributed_ddl_task_timeout=10", t, err, "")
 	t = time.Now()
 	_ = e.Control.StartNode(down)
 	back, err := e.waitNode(ctx, down, 2*time.Minute)
@@ -65,8 +66,8 @@ func R6(ctx context.Context, e Env, admin driver.Conn) (Result, error) {
 		r.step("time after restart until "+name+" exists on the restarted node", start, nil, v)
 	}
 	r.Findings = append(r.Findings,
-		fmt.Sprintf("ON CLUSTER with a replica down returned %s after %.0f ms (the client sees a timeout while the task stays queued for the missing host).", oc.Outcome, oc.Millis),
-		fmt.Sprintf("In a Replicated database the same DDL returned %s after %.0f ms; the restarted replica replays it from the database's log.", rd.Outcome, rd.Millis))
+		fmt.Sprintf("ON CLUSTER with a replica down returned %s after %.0f ms; see the steps for when the restarted replica executed the queued task.", oc.Outcome, oc.Millis),
+		fmt.Sprintf("In a Replicated database the same DDL returned %s after %.0f ms; see the steps for when the restarted replica replayed it from the database log.", rd.Outcome, rd.Millis))
 	return r, nil
 }
 

@@ -687,9 +687,10 @@ sections:
       Source: settings; [OP] `02-clickhouse-default-profile.xml`
   - id: RS-04
     openmeter_relevant: true
-    evidence: D7 policy matrix + R2 + `probes/replication/sequential_consistency.sql`
+    evidence: D7 policy matrix + R2 + `probes/replication/sequential_consistency.sql` + `probes/replication/quorum_async_insert.sql`
     probes:
     - probes/replication/sequential_consistency.sql
+    - probes/replication/quorum_async_insert.sql
     cells:
       Behaviour: '**`select_sequential_consistency` prerequisites**'
       cloud: Available on SharedMergeTree *(h)*
