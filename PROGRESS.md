@@ -275,9 +275,14 @@ performance (ADR-0005).
   stale, quorum and `SYNC REPLICA` 0) and value parity against their single
   tier for every workload and scenario
   (`results/parity/local-sharded-kind-*.md`, `local-kind-upstream-*.md`).
-- **s3 storage variants.** `local-cluster-s3-cow` (`cache_on_write_operations=1`,
-  Cloud's default) and `local-cluster-s3-smallcache` (256 MiB) both passed
-  parity and all 50 probes.
+- **s3 storage variants.** `local-cluster-s3-cow` (write-through caching,
+  Cloud's documented default) and `local-cluster-s3-smallcache` (256 MiB)
+  passed parity and all 50 probes. The cow tier is being re-verified after the
+  write-through fix below. Each run records the effective cache
+  settings and the cache occupancy after seeding (D14 mechanics, not
+  performance). After 500k OpenMeter rows on 1×2, the read-only tiers held
+  1,200 segments and 50.7 MB, filled by merge and fetch reads. Write-through
+  held 1,922 segments and 210.7 MB.
 - **CI.** GitHub Actions is green, including the Docker smoke job with the
   parity gate and collector-path parity.
 
@@ -303,6 +308,14 @@ performance (ADR-0005).
   digest error), so `targets/kind/up` imports with `docker save | ctr import`.
   remote_servers can lag a CHI that has reached `Completed`, so `up` also waits
   until `system.clusters` lists every host.
+- **Write-through caching needs two knobs.** The cache disk's
+  `cache_on_write_operations=1` does nothing unless the setting
+  `enable_filesystem_cache_on_write_operations` is also 1. That setting
+  defaults to 0 upstream and is documented as 1 on Cloud. The first s3-cow
+  tier set only the disk knob, and its cache after seeding matched the
+  read-only tiers byte for byte. The `cache_after_seed` snapshot exposed this,
+  and the tier now sets both. This is a fairness trap for D14: a self-managed
+  "cache on write" configuration can silently be off.
 - Local compose tiers filled the sandbox disk through `information`-level
   Docker logs. They now log at `warning`, rotate logs, and keep only the system
   logs the harness reads.

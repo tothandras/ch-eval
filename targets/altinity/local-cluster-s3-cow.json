@@ -21,7 +21,7 @@
     "http_base": 18623
   },
   "dsn_env": "CLICKHOUSE_DSN_ALTINITY_LOCAL_CLUSTER_S3_COW",
-  "notes": "Local tier: correctness, parity and smoke only (ADR-0005). s3 mode with cache_on_write_operations=1 (Cloud's default), the D14 fairness variant.",
+  "notes": "Local tier: correctness, parity and smoke only (ADR-0005). s3 mode with write-through caching: cache_on_write_operations=1 on the cache disk plus enable_filesystem_cache_on_write_operations=1 in the default profile (Cloud's documented default; the disk knob alone does nothing). The D14 fairness variant.",
   "keeper_image": "altinity/clickhouse-keeper:26.3.33.10001.altinitystable",
   "keepers": 3,
   "mem_bytes_per_node": 2500000000,

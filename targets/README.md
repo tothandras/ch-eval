@@ -10,7 +10,7 @@ targets/altinity/down local-cluster    # stop, remove volumes, verify nothing is
 
 | Platform | Tiers | Notes |
 | --- | --- | --- |
-| `altinity` | `local-single`; `local-cluster` (1×2 + 3 Keeper + SeaweedFS S3); `local-cluster-s3` (same deployment, S3-backed storage policy); `local-cluster-s3-cow` (S3 policy, `cache_on_write_operations=1`, Cloud's default); `local-cluster-s3-smallcache` (S3 policy, 256 MiB filesystem cache); `local-cluster-2x2`; `kind` (Altinity operator 0.27.4, CHK ×3, CHI 1×2) | Image `altinity/clickhouse-server:26.3.33.10001.altinitystable` |
+| `altinity` | `local-single`; `local-cluster` (1×2 + 3 Keeper + SeaweedFS S3); `local-cluster-s3` (same deployment, S3-backed storage policy); `local-cluster-s3-cow` (S3 policy with write-through caching: the disk's `cache_on_write_operations=1` plus `enable_filesystem_cache_on_write_operations=1` in the default profile, Cloud's documented default); `local-cluster-s3-smallcache` (S3 policy, 256 MiB filesystem cache); `local-cluster-2x2`; `kind` (Altinity operator 0.27.4, CHK ×3, CHI 1×2) | Image `altinity/clickhouse-server:26.3.33.10001.altinitystable` |
 | `upstream-oss` | same tiers except the two s3 cache variants, which test storage knobs rather than build differences | Image `clickhouse/clickhouse-server:26.3.33.24`, the same 26.3.33 base. The kind tier runs this image under the same operator. |
 | `cloud` | `scale` (paid) | `up` refuses until Phase 3 approval and `BUDGET_ACK` |
 

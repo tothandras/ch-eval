@@ -878,6 +878,11 @@ sections:
       self-managed `ebs` (colocated): n/a
       self-managed `s3` (self-separated): Off by default (`cache_on_write_operations=false`) *(h)*
       Source: session settings; storing-data
+    observations:
+    - platforms:
+      - altinity
+      source: D14 `seed.cache_after_seed`, s3 cache tiers
+      text: 'Write-through needs both knobs: the disk''s `cache_on_write_operations=1` and the setting `enable_filesystem_cache_on_write_operations=1` (default 0; set in the default profile it also covers background merges). With only the disk knob, the 1×2 cache after seeding 500k OpenMeter rows matched the read-only tiers byte for byte (1,200 segments, 50.7 MB, filled by merge and fetch reads); with both, 1,922 segments, 210.7 MB. Local tier, mechanics only.'
   - id: CS-04
     evidence: C1 (asymmetry recorded)
     probes: []
