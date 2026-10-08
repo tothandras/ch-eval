@@ -14,6 +14,11 @@ func TestMatrixRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	for si := range m.Sections { // observations are appended to cells; compare the hypotheses
+		for ri := range m.Sections[si].Rows {
+			m.Sections[si].Rows[ri].Observations = nil
+		}
+	}
 	out := m.Render(nil, "> **Status:** test")
 	want, err := os.ReadFile("testdata/feature-matrix.phase1.md")
 	if err != nil {

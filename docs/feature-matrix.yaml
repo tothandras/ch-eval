@@ -730,6 +730,12 @@ sections:
       cloud: No data copy for new replicas *(h)*
       altinity / upstream-oss (26.3): New or rebuilt replica fetches all parts from peers *(h)*
       Source: replication
+    observations:
+    - platforms:
+      - altinity
+      - upstream-oss
+      source: E6
+      text: the added replica fetched 1M rows from its peer within a second of joining (small dataset; the 100M timing is a paid-tier measurement).
   - id: RS-07
     evidence: R6
     probes: []
@@ -801,6 +807,12 @@ sections:
       cloud: n/a
       altinity / upstream-oss (26.3): The operator creates schema on scale-up ("automatically creates schema"), sets `internal_replication=true`, and generates the `{shard}`/`{replica}` macros *(h)*
       Source: '[OP] `docs/schema_migration.md`'
+    observations:
+    - platforms:
+      - altinity
+      - upstream-oss
+      source: E6, `results/experiments/E6/`
+      text: 'kind, operator 0.27.4: after `replicasCount` 2→3 the operator created the table on the new replica (no DDL issued) and it fetched all rows; the new host appeared in the cluster about 80 s after the patch (pod start).'
   - id: RS-13
     evidence: S6 via the E13 sweep
     probes: []
@@ -953,6 +965,12 @@ sections:
       cloud: Scale and Enterprise (1:4). CPU target 53% (up above 75%, down below 37.5%). **3 h and 30 h lookback windows.** Make-before-break. Memory in multiples of 4 GiB, 8–356 GiB. *(h)*
       self-managed (operator on EKS): ❌. Manual change to the CHI pod resources, rolled one host at a time per shard (exclude → drain → restart). *(h)*
       Source: '[scaling-recommendations](https://clickhouse.com/docs/products/cloud/features/autoscaling/scaling-recommendations), [mbb](https://clickhouse.com/docs/products/cloud/features/autoscaling/make-before-break); [OP] `config.yaml`'
+    observations:
+    - platforms:
+      - altinity
+      - upstream-oss
+      source: E5, `results/experiments/E5/`
+      text: 'kind: a pod memory-limit change rolled one host at a time; three hosts took 140 s, so each host restarts in turn.'
   - id: SC-02
     evidence: E2, E6
     probes: []
@@ -961,6 +979,12 @@ sections:
       cloud: Manual, 1–50 replicas, with no data copy. Horizontal autoscaling is **private preview**. *(h)*
       self-managed (operator on EKS): '`replicasCount`: the new replica copies the whole dataset *(h)*'
       Source: '[horizontal](https://clickhouse.com/docs/products/cloud/features/autoscaling/horizontal), [horizontal-autoscaling](https://clickhouse.com/docs/products/cloud/features/autoscaling/horizontal-autoscaling)'
+    observations:
+    - platforms:
+      - altinity
+      - upstream-oss
+      source: E6
+      text: adding a replica through the operator works without manual DDL; the new replica copies the data (see RS-06).
   - id: SC-03
     evidence: E1a, E4
     probes: []
