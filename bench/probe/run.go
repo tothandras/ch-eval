@@ -7,7 +7,9 @@
 //	-- probe: <title>
 //	-- expect: <observation>            default for every target
 //	-- expect.<selector>: <observation> override; selectors, most specific first:
-//	                                    tier-<tier>, <platform>, storage-<storage>, dialect-<dialect>
+//	                                    target-<manifest name> (a tier that changes a default
+//	                                    on purpose), tier-<tier>, <platform>, storage-<storage>,
+//	                                    dialect-<dialect>
 //	-- requires: cluster | replicated | sharded   (skipped elsewhere, recorded as skipped)
 //	-- cleanup: <statement>             run after the probe whatever happened
 //
@@ -136,7 +138,7 @@ func parse(path string) (Probe, error) {
 
 // Expectation picks the expectation for a target.
 func (p Probe) Expectation(m target.Manifest) string {
-	for _, sel := range []string{"tier-" + m.Tier, m.Platform, "storage-" + m.Storage, "dialect-" + m.Dialect, ""} {
+	for _, sel := range []string{"target-" + m.Name, "tier-" + m.Tier, m.Platform, "storage-" + m.Storage, "dialect-" + m.Dialect, ""} {
 		if e, ok := p.Expect[sel]; ok {
 			return e
 		}
