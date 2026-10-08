@@ -29,6 +29,7 @@ func (openmeterEvents) Seed(ctx context.Context, conn driver.Conn, db string, ta
 	cfg.BatchSize = o.BatchSize
 	cfg.Seed = o.Seed
 	cfg.Namespaces = o.Namespaces
+	cfg.NamespaceSkew = o.NamespaceSkew
 	cfg.MixedValueStorage = o.MixedValue
 	cfg.Settings = o.Settings
 	cfg.TimeEnd = o.TimeEnd

@@ -223,3 +223,35 @@ func TestSeedHeterogeneousPayloads(t *testing.T) {
 		}
 	}
 }
+
+// TestNamespaceSkewOnlyChangesNamespace: the Zipf draw replaces only the last
+// (namespace) draw, so every other field equals the uniform stream, and the
+// primary namespace dominates.
+func TestNamespaceSkewOnlyChangesNamespace(t *testing.T) {
+	uni := DefaultConfig()
+	uni.Table, uni.Namespaces = "t", 32
+	skew := uni
+	skew.NamespaceSkew = 1.5
+	gu, err := NewGenerator(uni)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gs, err := NewGenerator(skew)
+	if err != nil {
+		t.Fatal(err)
+	}
+	counts := map[string]int{}
+	const n = 20000
+	for i := 0; i < n; i++ {
+		a, b := gu.At(i), gs.At(i)
+		if a.ID != b.ID || a.Subject != b.Subject || a.Type != b.Type || a.Data != b.Data || !a.Time.Equal(b.Time) || a.StoreRowID != b.StoreRowID {
+			t.Fatalf("event %d: skew changed a field other than the namespace", i)
+		}
+		counts[b.Namespace]++
+	}
+	primary := float64(counts[uni.Namespace]) / n
+	if primary < 0.3 {
+		t.Fatalf("primary namespace share %.2f; a Zipf(1.5) tenant mix should be dominated by it", primary)
+	}
+	t.Logf("primary share %.2f across %d namespaces", primary, len(counts))
+}

@@ -166,6 +166,8 @@ func inputsDiffer(a, b runs.Run) string {
 		return fmt.Sprintf("rng seed %d vs %d", a.Seed.RNGSeed, b.Seed.RNGSeed)
 	case a.Seed.Namespaces != b.Seed.Namespaces:
 		return fmt.Sprintf("namespaces %d vs %d", a.Seed.Namespaces, b.Seed.Namespaces)
+	case a.Seed.NamespaceSkew != b.Seed.NamespaceSkew:
+		return fmt.Sprintf("namespace skew %g vs %g", a.Seed.NamespaceSkew, b.Seed.NamespaceSkew)
 	case a.Seed.TimeEnd != b.Seed.TimeEnd:
 		return fmt.Sprintf("time_end %s vs %s", a.Seed.TimeEnd, b.Seed.TimeEnd)
 	case a.Seed.Generator != b.Seed.Generator:

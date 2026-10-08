@@ -64,6 +64,7 @@ type flags struct {
 	waitAsyncInsert bool
 	rngSeed         uint64
 	namespaces      int
+	namespaceSkew   float64
 	mixedValue      bool
 	skipSeed        bool
 	allowDrift      bool
@@ -114,6 +115,7 @@ func newRootCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&f.asyncInsert, "async-insert", false, "seed with async_insert=1 (default: async_insert=0 set explicitly, since 26.2+ servers default it on)")
 	cmd.Flags().BoolVar(&f.waitAsyncInsert, "wait-async", false, "set wait_for_async_insert=1 when async-insert is true")
 	cmd.Flags().Uint64Var(&f.rngSeed, "seed", 42, "RNG seed for deterministic data generation")
+	cmd.Flags().Float64Var(&f.namespaceSkew, "namespace-skew", 0, "Zipf exponent (> 1) for the namespace draw, so one tenant dominates; 0 = uniform")
 	cmd.Flags().IntVar(&f.namespaces, "namespaces", 1, "number of namespaces to spread seeded rows across (multi-tenant table)")
 	cmd.Flags().BoolVar(&f.mixedValue, "mixed-value", false, "emit baseline `value` in mixed JSON storage (number/string/bigint) to exercise the type-agnostic correctness fix")
 	cmd.Flags().StringVar(&f.ingestPath, "ingest-path", "direct", "OTel workloads: direct (native insert with the exporter's mapping) or collector (OTLP through the OpenTelemetry Collector)")
@@ -565,7 +567,7 @@ func (f *flags) workloadOpts(m target.Manifest) (workloads.Opts, error) {
 		settings["distributed_foreground_insert"] = 1
 	}
 	return workloads.Opts{
-		Rows: f.rows, BatchSize: f.batchSize, Seed: f.rngSeed, Namespaces: max(f.namespaces, 1), MixedValue: f.mixedValue,
+		Rows: f.rows, BatchSize: f.batchSize, Seed: f.rngSeed, Namespaces: max(f.namespaces, 1), NamespaceSkew: f.namespaceSkew, MixedValue: f.mixedValue,
 		TimeEnd: te, Settings: settings, IngestPath: f.ingestPath, CollectorURL: f.collectorURL, Profile: f.profile,
 	}, nil
 }
@@ -615,7 +617,7 @@ func doSeed(ctx context.Context, conn, admin driver.Conn, m target.Manifest, sc 
 		}
 	}
 	block := &runs.SeedBlock{
-		Generator: sc.Config.Generator, Rows: res.Ingest.Rows, RNGSeed: o.Seed, Namespaces: o.Namespaces,
+		Generator: sc.Config.Generator, Rows: res.Ingest.Rows, RNGSeed: o.Seed, Namespaces: o.Namespaces, NamespaceSkew: o.NamespaceSkew,
 		TimeEnd: o.TimeEnd.UTC().Format(time.RFC3339), Table: sc.Config.Database + "." + sc.Config.Tables[0], Settings: o.Settings,
 		IngestPath: firstNonEmpty(o.IngestPath, "direct"), Profile: o.Profile, TableRows: res.Rows, Notes: res.Notes,
 	}

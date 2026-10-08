@@ -22,9 +22,11 @@ type Opts struct {
 	Rows       int // target rows in the main table(s); per-workload meaning is documented by each generator
 	BatchSize  int
 	Seed       uint64
-	Namespaces int  // openmeter
-	MixedValue bool // openmeter
-	TimeEnd    time.Time
+	Namespaces int // openmeter
+	// NamespaceSkew > 1 draws namespaces Zipf-distributed (openmeter); 0 = uniform.
+	NamespaceSkew float64
+	MixedValue    bool // openmeter
+	TimeEnd       time.Time
 	// Settings apply to every insert (the harness sets async_insert explicitly).
 	Settings map[string]any
 	// IngestPath is "direct" (native insert, default) or "collector" (OTLP to an

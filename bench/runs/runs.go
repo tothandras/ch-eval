@@ -48,15 +48,16 @@ type TargetBlock struct {
 
 // SeedBlock records how the data was generated and inserted.
 type SeedBlock struct {
-	Generator  string         `json:"generator"`
-	Rows       int            `json:"rows"`
-	RNGSeed    uint64         `json:"rng_seed"`
-	Namespaces int            `json:"namespaces"`
-	TimeEnd    string         `json:"time_end"`
-	Table      string         `json:"table"`
-	Settings   map[string]any `json:"settings"`
-	IngestPath string         `json:"ingest_path,omitempty"`
-	Profile    string         `json:"profile,omitempty"`
+	Generator     string         `json:"generator"`
+	Rows          int            `json:"rows"`
+	RNGSeed       uint64         `json:"rng_seed"`
+	Namespaces    int            `json:"namespaces"`
+	NamespaceSkew float64        `json:"namespace_skew,omitempty"`
+	TimeEnd       string         `json:"time_end"`
+	Table         string         `json:"table"`
+	Settings      map[string]any `json:"settings"`
+	IngestPath    string         `json:"ingest_path,omitempty"`
+	Profile       string         `json:"profile,omitempty"`
 	// TableRows is the expected row count per table the generator wrote.
 	TableRows map[string]uint64 `json:"table_rows,omitempty"`
 	Notes     []string          `json:"notes,omitempty"`

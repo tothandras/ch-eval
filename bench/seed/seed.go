@@ -48,6 +48,11 @@ type Config struct {
 	Table      string        // Target table name (e.g. data_as_json_events); REQUIRED.
 	Namespace  string        // Primary namespace; the default {namespace} param binds to it.
 	Namespaces int           // Total namespaces to spread rows across; ≤1 means single-namespace (just Namespace).
+	// NamespaceSkew, when > 1, draws namespaces from a Zipf distribution with this
+	// exponent (the primary namespace is the heaviest tenant) instead of uniformly.
+	// It only changes the last draw of each event, so every other field is
+	// identical to the uniform stream; 0 keeps the uniform default.
+	NamespaceSkew float64
 	Types      []string      // Type names; Types[0] is the baseline type the default {type} param binds to.
 	Subjects   int           // Subject pool size; ≥100 for baseline.
 	Group1     []string      // Categorical group1 values (baseline api_request payload).
@@ -423,7 +428,11 @@ func (g *genCtx) genEventTime(idx int, overrideTime time.Time, override bool) Ev
 	// field — single-namespace data stays byte-identical to pre-namespace runs.
 	namespace := g.cfg.Namespace
 	if len(g.namespaces) > 1 {
-		namespace = g.namespaces[rng.IntN(len(g.namespaces))]
+		if g.cfg.NamespaceSkew > 1 {
+			namespace = g.namespaces[rand.NewZipf(rng, g.cfg.NamespaceSkew, 1, uint64(len(g.namespaces)-1)).Uint64()]
+		} else {
+			namespace = g.namespaces[rng.IntN(len(g.namespaces))]
+		}
 	}
 	return Event{
 		ID:         id,
