@@ -31,7 +31,7 @@ Citations point to the published docs URL. Docs text was verified against the
 docs source (`ClickHouse/ClickHouse/docs` at master `cd023af`) because
 clickhouse.com is unreachable from the build sandbox.
 
-**OpenMeter-relevant rows are bold.** Each is a candidate for the design-decision
+**OpenMeter-relevant rows are bold.** Sections 9–11 were added at the owner's request on 2026-10-08. Each is a candidate for the design-decision
 callout at the top of `REPORT.md` once probed.
 
 ## 1. Storage and replication
@@ -129,9 +129,76 @@ callout at the top of `REPORT.md` once probed.
 | CL-03 | `WithAsync(wait)` semantics vs the server defaults in IN-01/IN-02 | `probes/client/async_test.go` |
 | CL-04 | Batch insert of JSON text into a `JSON` column | `probes/client/json_insert_test.go` |
 
+## 9. Replication and sharding (self-managed; owner addition)
+
+Defaults are read from `Settings.cpp` / `MergeTreeSettings.cpp` at
+`v26.3.33.24-lts`. They are identical in `v26.3.33.10001.altinitystable`
+(every `DECLARE` line diffed). Details are in
+[`research/replication-sharding.md`](research/replication-sharding.md).
+
+| ID | Behaviour | cloud | altinity / upstream-oss (26.3) | Source | Planned probe / experiment |
+| --- | --- | --- | --- | --- | --- |
+| **RS-01** | **Insert acknowledgement** | All SharedMergeTree inserts "are quorum inserts (written to shared storage)" *(h)* | One replica acknowledges; others fetch asynchronously: "recently inserted data appears on the other replicas with some latency" *(h)* | [replication](https://clickhouse.com/docs/engines/table-engines/mergetree-family/replication), [shared-merge-tree](https://clickhouse.com/docs/products/cloud/features/infrastructure/shared-merge-tree) | D7 `replica-consistency` |
+| **RS-02** | **Stale-replica fallback for distributed reads** | n/a (no Distributed table) | `fallback_to_stale_replicas_for_distributed_queries=1` and `max_replica_delay_for_distributed_queries=300` s by default *(h)* | [settings](https://clickhouse.com/docs/operations/settings/settings#fallback_to_stale_replicas_for_distributed_queries) | `probes/replication/stale_fallback.sql` + R1 |
+| **RS-03** | **Replica selection** | Cloud load balancer *(h)* | `load_balancing=random` upstream ("if the replicas have different data, you will also get different data"). The operator profile overrides it to `nearest_hostname` and `prefer_localhost_replica=0`. *(h)* | settings; [OP] `02-clickhouse-default-profile.xml` | `probes/replication/load_balancing.sql` |
+| **RS-04** | **`select_sequential_consistency` prerequisites** | Available on SharedMergeTree *(h)* | Needs `insert_quorum` **and** `insert_quorum_parallel=0`. The default is `insert_quorum_parallel=1`. *(h)* | [settings](https://clickhouse.com/docs/operations/settings/settings#select_sequential_consistency) | D7 policy matrix + R2 |
+| RS-05 | Keeper quorum loss | Managed by Cloud *(h)* | SELECT continues; INSERT throws; tables go read-only and recover automatically *(h)* | [replication](https://clickhouse.com/docs/engines/table-engines/mergetree-family/replication) | R3 (kind, paid) |
+| RS-06 | Replica rebuild | No data copy for new replicas *(h)* | New or rebuilt replica fetches all parts from peers *(h)* | replication | R4 / E6 |
+| RS-07 | DDL with a replica down | Shared database engine *(h)* | `ON CLUSTER` is eventually executed; the client times out after `distributed_ddl_task_timeout=180` s. The Replicated database became beta in 24.4; its tier at 26.3 is ❓ *(h)* | [distributed-ddl](https://clickhouse.com/docs/sql-reference/distributed-ddl) | R6 |
+| **RS-08** | **Distributed insert default** | n/a | `distributed_foreground_insert=0`: inserts are queued on local disk and sent in the background; "the inserted data might be lost" on a rough restart *(h)* | [distributed](https://clickhouse.com/docs/engines/table-engines/special/distributed) | S4 |
+| **RS-09** | **Unavailable shard** | n/a | `skip_unavailable_shards=0` throws (safe). With 1 it "returns a result based on partial data and does not report node availability issues" *(h)* | [settings](https://clickhouse.com/docs/operations/settings/settings#skip_unavailable_shards) | `probes/sharding/unavailable_shard.sql` + S3 |
+| RS-10 | Shard pruning by key | n/a | `optimize_skip_unused_shards=0` by default; "otherwise a query yields incorrect result" if the data is not actually distributed by the key *(h)* | settings | S2 |
+| **RS-11** | **Adding shards / rebalancing** | n/a (no sharding) | "ClickHouse doesn't support automatic shard rebalancing." clickhouse-copier is unsupported. Part moves between shards are experimental. *(h)* | [scaling-clusters](https://clickhouse.com/docs/guides/sre/scaling-clusters) | S5 |
+| RS-12 | Operator automation | n/a | The operator creates schema on scale-up ("automatically creates schema"), sets `internal_replication=true`, and generates the `{shard}`/`{replica}` macros *(h)* | [OP] `docs/schema_migration.md` | E6/S5 on kind |
+| RS-13 | When to shard | Not applicable: scale by replicas over shared storage *(h)* | ClickHouse: "using the largest server available to prevent having to re-shard". Altinity KB: "Starting with a sharded cluster from the beginning makes it easier…". The sources conflict. *(h)* | [sizing](https://clickhouse.com/docs/guides/sizing-and-hardware-recommendations); [KB] cluster-production-configuration-guide | S6 via the E13 sweep |
+| RS-14 | Parallel replicas (alternative to sharding) | `cluster_for_parallel_replicas='default'` *(h)* | `enable_parallel_replicas=0` by default; production tier from 25.12 (inferred); disabled with FINAL *(h)* | [parallel-replicas](https://clickhouse.com/docs/deployment-guides/parallel-replicas) | `1x4` topology runs |
+
+## 10. Compute/data separation vs colocation (owner addition)
+
+Details are in
+[`research/compute-storage-separation.md`](research/compute-storage-separation.md).
+
+| ID | Aspect | cloud (separated) | self-managed `ebs` (colocated) | self-managed `s3` (self-separated) | Source | Planned probe / experiment |
+| --- | --- | --- | --- | --- | --- | --- |
+| **CS-01** | **Where the data lives** | Object storage. Compute metadata is stateless ("Nothing is persisted on local disk"). *(h)* | Local gp3 volume per replica *(h)* | S3 objects per replica. Metadata stays local, "each replica independently manages its pointers to blobs", so replicas are not stateless. *(h)* | [architecture](https://clickhouse.com/docs/products/cloud/reference/architecture), [shared-catalog](https://clickhouse.com/docs/products/cloud/features/infrastructure/shared-catalog), [storing-data](https://clickhouse.com/docs/concepts/features/configuration/server-config/storing-data) | `metadata.json` disks/policies |
+| CS-02 | Read caches | Per-replica SSD filesystem cache ("the SSD cache allows us to speed up queries") plus the optional distributed cache. **Conflicting:** a blog says nodes no longer use local disks for caching (*unverified verbatim*). ❓ | OS page cache *(h)* | Filesystem cache disk (SLRU, `max_size`) plus OS page cache *(h)* | [parallel-replicas](https://clickhouse.com/docs/products/cloud/features/infrastructure/parallel-replicas) | `probes/locality/cache_introspection.sql` (`system.filesystem_cache`, `FilesystemCacheSize`, distributed-cache settings) |
+| **CS-03** | **Cache populated on write** | `enable_filesystem_cache_on_write_operations`: "Cloud default value: `1`" *(h)* | n/a | Off by default (`cache_on_write_operations=false`) *(h)* | session settings; storing-data | `s3` mode runs with on and off |
+| CS-04 | Cold-read control | `SYSTEM DROP FILESYSTEM CACHE`, `enable_filesystem_cache=0`. OS page cache unreachable. *(h)* | OS page-cache drop on the node (outside ClickHouse) *(h)* | Filesystem-cache drop plus OS page-cache drop *(h)* | [KB article](https://clickhouse.com/docs/resources/support-center/knowledge-base/cloud-services/execute-system-queries-in-cloud) | C1 (asymmetry recorded) |
+| CS-05 | Warm-up after a topology change | Scaling restarts processes, and "scaling takes time and invalidates local caches". Cloud-only prewarm levers exist (`cache_populated_by_fetch`, `prewarm_*`). *(h)* | Page cache cold after a restart *(h)* | Filesystem cache survives restarts ("Survives server restarts") *(h)* | [scaling-recommendations](https://clickhouse.com/docs/products/cloud/features/autoscaling/scaling-recommendations), [userspace-page-cache](https://clickhouse.com/docs/concepts/features/performance/caches/userspace-page-cache) | C4 (defaults vs prewarm) |
+| CS-06 | Insert path | Parts written to shared storage. Async flush 1000 ms / 100 MiB on Cloud vs 200 ms / 10 MiB upstream. *(h)* | Local write *(h)* | S3 multipart upload (16–32 MiB parts) *(h)* | shared-merge-tree; settings | C3 |
+| **CS-07** | **Storage copies billed** | One shared copy, "billed only once" across warehouses *(h)* | N replicas × data, plus provisioned headroom *(h)* | N replicas × data in S3 (no zero-copy) *(h)* | [warehouses](https://clickhouse.com/docs/products/cloud/features/infrastructure/warehouses); storing-data | C5 / R5 |
+| **CS-08** | **Object-storage requests and intra-region transfer** | Not billed; "no charges for intra-region data transfer" *(h)* | n/a | Billed by AWS per request *(h)* | [billing](https://clickhouse.com/docs/products/cloud/reference/billing/billing-overview) | C3 request counts → cost line |
+| CS-09 | Workload isolation | Warehouses: read-only services "Doesn't perform background merge operations" *(h)* | ❌ (separate replicas only) *(h)* | ❌ *(h)* | warehouses | C7 (optional) |
+
+## 11. On-demand scaling and rightsizing (owner addition)
+
+Details are in
+[`research/scaling-rightsizing.md`](research/scaling-rightsizing.md).
+
+| ID | Capability | cloud | self-managed (operator on EKS) | Source | Planned experiment |
+| --- | --- | --- | --- | --- | --- |
+| **SC-01** | **Vertical autoscaling** | Scale and Enterprise (1:4). CPU target 53% (up above 75%, down below 37.5%). **3 h and 30 h lookback windows.** Make-before-break. Memory in multiples of 4 GiB, 8–356 GiB. *(h)* | ❌. Manual change to the CHI pod resources, rolled one host at a time per shard (exclude → drain → restart). *(h)* | [scaling-recommendations](https://clickhouse.com/docs/products/cloud/features/autoscaling/scaling-recommendations), [mbb](https://clickhouse.com/docs/products/cloud/features/autoscaling/make-before-break); [OP] `config.yaml` | E1a/E1b, E5 |
+| SC-02 | Horizontal scaling | Manual, 1–50 replicas, with no data copy. Horizontal autoscaling is **private preview**. *(h)* | `replicasCount`: the new replica copies the whole dataset *(h)* | [horizontal](https://clickhouse.com/docs/products/cloud/features/autoscaling/horizontal), [horizontal-autoscaling](https://clickhouse.com/docs/products/cloud/features/autoscaling/horizontal-autoscaling) | E2, E6 |
+| SC-03 | Scheduled scaling | Beta API `scalingSchedule` (whole UTC hours, weekday sets) *(h)* | Manual or cron-driven CHI edits (assessed) | [scheduled-scaling](https://clickhouse.com/docs/products/cloud/features/autoscaling/scheduled-scaling), [API] | E1a, E4 |
+| SC-04 | Idle scaling | `idleTimeoutMinutes` ≥ 5 (adaptive up to 60). Wake on connect in "a few tens of seconds". Storage is still billed. *(h)* | ❌ | [idling](https://clickhouse.com/docs/products/cloud/features/autoscaling/idling) | E3 |
+| **SC-05** | **Storage growth** | Automatic, billed on compressed bytes ("you don't have to size your storage partition upfront") *(h)* | EBS: online PVC expansion with operator-managed PVs (`storageManagement.provisioner: Operator`). Up to **4 modifications per rolling 24 h**, no shrink. *(h)* | [billing](https://clickhouse.com/docs/products/cloud/reference/billing/billing-overview); [OP] changelog 0.20.0; [EC2 API](https://github.com/boto/botocore) | E10 |
+| **SC-06** | **Merge and mutation headroom** | Not the user's concern (object storage) *(h)* | Merges reserve 2× the merged size; mutations rewrite parts. Full disks stall merges. *(h)* | [merge-tree settings](https://clickhouse.com/docs/reference/settings/merge-tree-settings) | E11 |
+| SC-07 | Sizing guidance | No Cloud sizing page. Generic memory:storage 1:100–1:130 (1:30–1:50 for hot data). *(h)* | Same generic guide. Altinity KB: < 10 TB compressed per server. *(h)* | [sizing](https://clickhouse.com/docs/guides/sizing-and-hardware-recommendations); [KB] how-much-is-too-much | E13 sweep |
+
 ## Starting hypotheses checked against sources so far
 
 - **Refuted:** executable UDFs as "self-managed only" (SM-03). Cloud documents them as GA.
 - **Refined:** Cloud uses the **Shared** database engine, not `Replicated` (ST-02).
 - **New:** `async_insert=1` and deduplicate-all-inserts became defaults in 26.2 (IN-01, IN-03). Every target in this evaluation is ≥ 26.2, so OpenMeter's inserts are async on all of them unless the sink sets `async_insert=0`.
 - **New:** lightweight `UPDATE` is still beta in 26.x (VG-05). Lightweight mutations fail on tables with projections (VG-10).
+- **New (§9):** distributed reads fall back to stale replicas by default
+  (RS-02), and upstream `load_balancing=random` lets successive reads differ
+  (RS-03). `select_sequential_consistency` alone is insufficient on
+  ReplicatedMergeTree (RS-04).
+- **New (§10):** sources conflict on whether Cloud replicas use a local SSD
+  filesystem cache (CS-02), so it must be probed. Cloud fills the cache on
+  writes by default; self-managed does not (CS-03).
+- **New (§11):** Cloud vertical autoscaling uses 3 h and 30 h windows, so it
+  does not follow short peaks; scheduled scaling or idling does (SC-01/03/04).
+  The EBS "6-hour modification cooldown" is out of date: the limit is now 4
+  modifications per rolling 24 h (SC-05).

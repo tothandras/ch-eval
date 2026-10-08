@@ -437,7 +437,7 @@ Replication
 
 | ID | Question | Measurement |
 | --- | --- | --- |
-| R1 | How stale can reads be, and how often? Does `Distributed` fall back to stale replicas by default? | Per policy, see D7. Also probe `fallback_to_stale_replicas_for_distributed_queries` and `max_replica_delay_for_distributed_queries`. |
+| R1 | How stale can reads be, and how often? Does `Distributed` fall back to stale replicas by default? | Per policy, see D7. Sources say it does: `fallback_to_stale_replicas_for_distributed_queries=1` and `max_replica_delay_for_distributed_queries=300` s. Upstream `load_balancing=random`; the operator profile sets `nearest_hostname`. Both profiles are measured. |
 | R2 | What do quorum inserts cost? | Insert latency/throughput with `insert_quorum` = replica count vs the default |
 | R3 | What happens when Keeper loses quorum? | Measured on kind and paid: time until tables go read-only, the error the OpenMeter-style writer sees, and recovery time. Single Keeper node loss is expected to have no impact; verified. |
 | R4 | How long does replica loss and rebuild take? | Kill a replica pod (and, separately, its volume). Measure re-sync time to 100% of 100M rows and the latency impact on surviving replicas. |
@@ -468,7 +468,15 @@ design callout.
 | --- | --- | --- |
 | `separated` | `cloud` | SharedMergeTree on object storage, per-replica filesystem cache, plus the distributed cache if the service has it |
 | `colocated` | self-managed `ebs` | ReplicatedMergeTree on gp3. Data local to compute; OS page cache. |
-| `self-separated` | self-managed `s3` | ReplicatedMergeTree on an s3 disk with a local filesystem cache. Data remote, but metadata local per replica, so replicas are not stateless. |
+| `self-separated` | self-managed `s3` | ReplicatedMergeTree on an s3 disk with a local filesystem cache. Data remote, but metadata local per replica, so replicas are not stateless. Run twice: `cache_on_write_operations` off (upstream default) and on (matches Cloud's `enable_filesystem_cache_on_write_operations=1` default). |
+
+Locality probes run before C1–C4 and decide how they are read:
+- whether `system.filesystem_cache` and `FilesystemCacheSize` are readable on
+  Cloud;
+- which distributed-cache settings exist and whether they are enabled.
+
+The sources disagree on whether Cloud replicas keep a local SSD cache (CS-02),
+so this cannot be assumed.
 
 **Questions**
 
@@ -477,7 +485,7 @@ design callout.
 | C1 | What do cold reads cost? | Per query class: latency and CPU cold vs warm. Cloud uses `SYSTEM DROP FILESYSTEM CACHE` + `enable_filesystem_cache=0`; EBS uses an OS page-cache drop on the node; s3 uses a filesystem-cache drop. Bytes read from object storage vs cache come from ProfileEvents. |
 | C2 | How does latency depend on working set vs cache size? | Query-window sweep (1h/24h/7d/30d) at 100M rows. On self-managed `s3`, also cap the filesystem cache at 25/50/100% of the table's compressed size. Plot cache hit ratio vs p95. Cloud's cache size is not configurable, so it is recorded from `system.filesystem_cache*` where readable. |
 | C3 | What changes on the write path? | Insert latency, time-to-queryable, merge throughput and merge CPU. Object-store request counts per 1M events (a cost line on self-managed `s3`; included in the price on Cloud). |
-| C4 | How long do caches take to warm after a topology change? | First-query latency curve after replica add, restart, upgrade and resume-from-idle, until steady state. Shared with D15. |
+| C4 | How long do caches take to warm after a topology change? | First-query latency curve after replica add, restart, upgrade and resume-from-idle, until steady state. Shared with D15. On Cloud, also a sub-run with the Cloud-only prewarm levers (`cache_populated_by_fetch`, `prewarm_mark_cache`), reported separately from defaults. |
 | C5 | How does storage cost scale with replicas? | Measured bytes × price: one shared copy (Cloud) vs N copies (EBS) vs N copies (S3 without zero-copy). |
 | C6 | What is the failure blast radius? | Local disk loss: measured (R4). Object-store throttling or outage: assessed, not measured. |
 | C7 | Does compute-compute separation isolate workloads? | Optional Cloud experiment if budget allows: query p95 under heavy ingest, same warehouse vs a separate read-only warehouse. Otherwise assessed with citations. |
@@ -493,7 +501,8 @@ and does not reproduce of Cloud's model.
 
 | ID | Question | Measurement |
 | --- | --- | --- |
-| E1 | How does Cloud vertical autoscaling respond to a load step? | Idle → heavy step. Poll `CGroupMaxCPU`/memory per replica over time and measure: time to scale up, query errors or latency during the change, time to scale back down, and the compute units billed through the window (usage statement) |
+| E1a | What happens during a Cloud scaling transition? | Cloud vertical autoscaling decides over 3 h and 30 h lookback windows (`docs/research/scaling-rightsizing.md`), so a minutes-long load step cannot trigger it. Instead, schedule a size change at a UTC hour with the beta `scalingSchedule` API and measure: transition time, make-before-break overlap (the replica count temporarily rises), query errors and latency during the change, cache warm-up on the new replicas, and billed compute units (usage statement). |
+| E1b | How does Cloud vertical autoscaling react to sustained load? (optional, separate budget approval) | Hold a sustained heavy load for ≥ 4 h. Poll `CGroupMaxCPU`/memory per replica over time and record when autoscaling acts and what it bills. |
 | E2 | How fast is Cloud horizontal scale-out? | `numReplicas` 2→3 via the API: time until the new replica serves queries, and its cold-cache latency curve (C4) |
 | E3 | How fast does Cloud resume from idle? | Time to first result and latency of the first N queries after idle; the idle floor billed |
 | E4 | How do scheduled scaling and scale-down behave on Cloud? | API probe of `scalingSchedule` and `replicaScaling`; assessed if the tier does not allow it |
@@ -507,7 +516,7 @@ and does not reproduce of Cloud's model.
 | ID | Question | Measurement |
 | --- | --- | --- |
 | E9 | How does Cloud storage scale? | Automatic, billed per compressed TB-month (assessed and cited). Measured bytes per event drive the cost. |
-| E10 | How does self-managed EBS storage scale? | Online PVC expansion through the operator and EBS CSI: time and disruption, measured. The EBS modification cooldown and no-shrink rules are assessed and cited. |
+| E10 | How does self-managed EBS storage scale? | Online PVC expansion through the operator (`storageManagement.provisioner: Operator`) and EBS CSI: time and disruption, measured. EBS allows 4 modifications per rolling 24 h and no shrinking; assessed and cited. |
 | E11 | How much disk headroom do merges and mutations need? | Peak disk use during merges and during the String→JSON migration, as a fraction of steady-state data size (measured). This sets the EBS provisioning factor. |
 | E12 | Is self-managed S3-backed storage elastic? | Measured bytes and requests; cited |
 

@@ -64,7 +64,7 @@
 - [ ] 6.7 Backup/restore at 100M plus cross-target portability (cloud → self-managed and back)
 - [ ] 6.8 Security and multi-tenancy probes; client-compatibility probes
 - [ ] 6.9 Operational-burden write-up with evidence
-- [ ] 6.10 Scaling (D15): Cloud load-step autoscaling (E1), scale-out (E2), idle/resume (E3), scheduled scaling probe (E4); self-managed vertical roll (E5), add replica (E6), add shard (E7); EBS online expansion (E10); merge and mutation headroom (E11)
+- [ ] 6.10 Scaling (D15): Cloud scheduled-scaling transition (E1a), optional ≥ 4 h sustained-load autoscaling (E1b, separate approval), scale-out (E2), idle/resume (E3), scheduled scaling probe (E4); self-managed vertical roll (E5), add replica (E6), add shard (E7); EBS online expansion (E10); merge and mutation headroom (E11)
 - [ ] 6.11 Rightsizing sweep (E13) per workload: Cloud 8/16/32 GiB vs self-managed 2/4/8 vCPU pods at the declared load and SLO; storage cost per retention (E14)
 - [ ] 6.12 Load-profile cost model and crossovers (E15), feeding the verdict flip conditions
 

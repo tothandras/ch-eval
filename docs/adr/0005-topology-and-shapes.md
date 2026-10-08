@@ -43,6 +43,25 @@
   the upstream image matching Cloud's `version()`. It separates version skew
   from architecture.
 
+## Amendment 2026-10-08: owner additions (design D13–D15)
+
+- **Self-managed topology variants:** `1x2` (baseline), `1x4` (scale out by
+  replicas, optionally with parallel replicas) and `2x2` (Distributed over
+  ReplicatedMergeTree). They run at matched total vCPU against Cloud at the
+  same replica count. Locally, `1x2` and `2x2` run for correctness only.
+- **`s3` storage mode runs twice:** with `cache_on_write_operations` off (the
+  upstream default) and on (matching Cloud's
+  `enable_filesystem_cache_on_write_operations=1` default).
+- **Rightsizing sweep (E13):**
+  - Cloud: 8 / 16 / 32 GiB per replica.
+  - Self-managed: 2 / 4 / 8 vCPU pods at the same 1:4 ratio, on node sizes
+    that fit one pod each.
+  - Cost comparisons use each target's smallest compliant shape as well as
+    identical shapes.
+- **Cloud autoscaling is observed, not forced.** Vertical autoscaling uses 3 h
+  and 30 h windows, so scaling transitions are triggered with scheduled
+  scaling (E1a). A multi-hour autoscaling run (E1b) is optional.
+
 ## Consequences
 
 - Cloud's hardware generation is not observable. Self-managed uses a current

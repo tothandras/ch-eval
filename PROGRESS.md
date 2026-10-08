@@ -6,8 +6,10 @@ Keep it accurate enough that a fresh agent can continue.
 
 ## Current state
 
-- **Phase:** 1 complete. **Waiting for owner review.** Phase 2 does not start
-  until the questions below are answered.
+- **Phase:** 1 complete, including the owner additions on replication and
+  sharding, compute/data separation, and scaling/rightsizing. **Waiting for
+  owner review.** Phase 2 does not start until the questions below are
+  answered.
 - **Branch:** `claude/lucid-edison-5q68bh`.
 - **Plan of record:** OpenSpec change `cross-target-evaluation`
   (`openspec validate --strict` passes).
@@ -84,12 +86,98 @@ Keep it accurate enough that a fresh agent can continue.
 - `minio/minio` cannot be pulled. Phase 2 needs another S3 emulator, for
   example SeaweedFS or LocalStack.
 
+### Phase 1 addendum: owner additions (2026-10-08)
+
+The owner added three areas after the first Phase 1 summary. Each is now a
+design decision with measured experiments, plus feature-matrix sections and
+research notes:
+
+| Area | Design | Feature-matrix section | Research note |
+| --- | --- | --- | --- |
+| Replication and sharding on self-managed | D13 | §9, RS-01…14 | `docs/research/replication-sharding.md` |
+| Cloud compute/data separation vs colocation | D14 | §10, CS-01…09 | `docs/research/compute-storage-separation.md` |
+| On-demand scaling and rightsizing for compute and storage | D15 | §11, SC-01…07 | `docs/research/scaling-rightsizing.md` |
+
+New delta specs: `replication-sharding`, `storage-locality`,
+`elastic-scaling`. ADR-0005 is amended with the topologies `1x2`/`1x4`/`2x2`,
+the two s3 cache-on-write variants, and the rightsizing sweep.
+
+**New source findings** (cited, not probed; design-callout candidates)
+
+6. **Stale reads are on by default on self-managed.** Distributed reads fall
+   back to stale replicas
+   (`fallback_to_stale_replicas_for_distributed_queries=1`, with
+   `max_replica_delay_for_distributed_queries=300` s). Upstream
+   `load_balancing=random` lets successive reads differ. The operator's
+   profile switches to `nearest_hostname` but leaves the stale fallback on.
+   Read-after-write guarantees on ReplicatedMergeTree need `insert_quorum`
+   **and** `insert_quorum_parallel=0` (whose default is the opposite) plus
+   `select_sequential_consistency=1`.
+7. **Sharding risks.**
+   - The default Distributed insert is a local disk queue sent in the
+     background, and can be lost on a rough restart.
+   - `skip_unavailable_shards=1` returns partial totals without an error. The
+     default (0) is safe.
+   - There is no automatic rebalancing, and clickhouse-copier is unsupported.
+   - Upstream ("largest server first") and Altinity ("start sharded") disagree
+     on when to shard.
+8. **Sources conflict on Cloud's local cache.** The docs describe a
+   per-replica SSD filesystem cache; a Cloud blog says nodes no longer cache on
+   local disks. Probe CS-02 settles it. Cloud fills the cache on writes by
+   default and self-managed does not, so the `s3` mode runs both ways. Cloud
+   does not bill object-storage requests or intra-region transfer; self-managed
+   S3 pays per request.
+9. **Scaling.**
+   - Cloud vertical autoscaling uses 3 h and 30 h lookback windows, so short
+     peaks are followed only by scheduled scaling (beta API) or idling (≥ 5 min
+     timeout, wake in about tens of seconds).
+   - Make-before-break temporarily adds replicas.
+   - Horizontal autoscaling is private preview.
+   - Self-managed: vertical changes roll host by host. A new replica copies the
+     whole dataset. EBS allows 4 modifications per rolling 24 h (the "6-hour
+     cooldown" is out of date) and cannot shrink. Merges reserve 2× the merged
+     size on disk.
+
+**Experiment design changes this forced**
+- **E1 is split:** a scheduled-scaling transition (E1a) and an optional ≥ 4 h
+  sustained-load autoscaling run (E1b).
+- **C4 adds a Cloud prewarm sub-run.**
+- **Locality probes run before C1–C4.**
+
 ## Questions for the owner (Phase 1 stop point)
 
-1. **Budget:** what is the cap for paid resources? The rough plan estimate is
-   about $300–500 total and will be re-estimated before each paid run. Which
-   AWS account or profile, and which ClickHouse Cloud organization, should be
-   used?
+1. **Budget:** what is the cap for paid resources, and which AWS account or
+   profile and ClickHouse Cloud organization should be used? The revised
+   estimate is below. Every paid run gets its own estimate and approval
+   before anything is created.
+
+   | Block | Basis | Estimate |
+   | --- | --- | ---: |
+   | Self-managed `1x2` | ≈ 97 h × $1.77/h | ≈ $175 |
+   | Self-managed 4-node topology sweep | ≈ 10 h × $2.68/h | ≈ $27 |
+   | Cloud, 2 × 16 GiB plus sweeps and scaling | ≈ 55 h | ≈ $90–110 |
+   | Storage, S3, egress, backups | — | ≈ $20–40 |
+   | Idle and debug overhead | +40% | — |
+   | **Base total** | | **≈ $450–600** |
+   | Optional: `upstream-cloudver` | — | +≈ $45 |
+   | Optional: E1b (≥ 4 h autoscaling) | — | +≈ $10 |
+   | Optional: C7 warehouse isolation | — | +≈ $8 |
+
+   How the hourly figures were built (us-east-1):
+   - **Self-managed `1x2`, about $1.77/h:**
+     - 2 × m7i.2xlarge ClickHouse nodes at $0.4032/h each;
+     - 3 × m7i.large Keeper nodes;
+     - EKS at $0.10/h;
+     - an m7i.2xlarge client VM;
+     - gp3 at $0.08/GB-month, with prices from the AWS Price List on
+       2026-10-07.
+   - **4-node topologies:** about $2.68/h.
+   - **Cloud, 2 × 16 GiB:** about $1.19/h at $0.2985 per compute-unit hour.
+     That rate is **unverified for today** and will be re-checked.
+   - **eu-central-1** is about 20% more.
+   - **Suggested cap:** about $700.
+   - **Bigger reductions** are available by cutting the OTel paid runs to one
+     build, or by skipping the `s3` cache-on-write variant.
 2. **Region and shape:** proposed is one AWS region (eu-central-1 to match the
    earlier COGS run, or us-east-1), with 2 replicas × 16 GiB / 4 vCPU on
    Cloud's Scale tier and the same on EKS with the Altinity operator. Is 2 or 3
@@ -106,6 +194,19 @@ Keep it accurate enough that a fresh agent can continue.
    monotonicity, policy overhead, RMT vs SMT) the right test of the
    SharedMergeTree analysis? Are there OpenMeter query shapes to add, such as
    the charge snapshot query with `stored_at < StoredAtLT`?
+7. **Sharding on paid tiers:** is the paid `2x2` topology needed at 10M rows
+   for query behaviour only, or also at 100M for resharding cost (S5)? I
+   propose 10M paid plus resharding measured on a smaller dataset; 100M only
+   if the budget allows.
+8. **Target load and SLOs for rightsizing (E13):** what ingest rate and query
+   load should the rightsizing sweep target? I propose the existing COGS mixed
+   cell (5k events/s + 4 qps) as "typical", and 25k events/s + 16 qps as
+   "peak". Proposed p95 SLOs: meter_agg ≤ 500 ms, payload_heavy ≤ 1 s,
+   lookup ≤ 200 ms. These are placeholders; real OpenMeter SLOs would be
+   better.
+9. **Retention for storage rightsizing (E14):** OpenMeter events 13 months
+   and OTel 30 days by default? Override if OpenMeter has real retention
+   policies.
 
 ## Next (Phase 2, after approval)
 
