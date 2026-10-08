@@ -237,7 +237,8 @@ func HarnessCommit() string {
 		return "unknown"
 	}
 	sha := strings.TrimSpace(string(out))
-	statusCmd := exec.Command("git", "status", "--porcelain")
+	// results/ is excluded: runs write there, and that must not mark the next run dirty.
+	statusCmd := exec.Command("git", "status", "--porcelain", "--", ".", ":(exclude)results")
 	if status, err := statusCmd.Output(); err == nil && len(strings.TrimSpace(string(status))) > 0 {
 		sha += "-dirty"
 	}
