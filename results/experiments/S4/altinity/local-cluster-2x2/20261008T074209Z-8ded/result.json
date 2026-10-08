@@ -1,0 +1,64 @@
+{
+  "id": "S4",
+  "question": "How does insert routing affect visibility (Distributed background, foreground, direct to shard)?",
+  "target": "altinity/local-cluster-2x2",
+  "version": "26.3.33.10001.altinitystable",
+  "started_at": "2026-10-08T07:41:56.145206667Z",
+  "steps": [
+    {
+      "name": "insert ack: Distributed, background queue (default)",
+      "outcome": "ok",
+      "ms": 18.421
+    },
+    {
+      "name": "time from ack to queryable: Distributed, background queue (default)",
+      "outcome": "value:144ms",
+      "ms": 143.707
+    },
+    {
+      "name": "insert ack: Distributed, distributed_foreground_insert=1",
+      "outcome": "ok",
+      "ms": 79.066
+    },
+    {
+      "name": "time from ack to queryable: Distributed, distributed_foreground_insert=1",
+      "outcome": "value:45ms",
+      "ms": 44.523
+    },
+    {
+      "name": "insert ack: direct to shard-local tables (client-side sharding)",
+      "outcome": "ok",
+      "ms": 82.582
+    },
+    {
+      "name": "time from ack to queryable: direct to shard",
+      "outcome": "value:21ms",
+      "ms": 20.865
+    },
+    {
+      "name": "insert with the last shard down: background queue",
+      "outcome": "ok",
+      "ms": 25.44
+    },
+    {
+      "name": "insert with the last shard down: foreground",
+      "outcome": "error:279",
+      "detail": "code: 279, message: All connection tries failed. Log: \n\nCode: 32. DB::Exception: Attempt to read after eof. (ATTEMPT_TO_READ_AFTER_EOF) (version 26.3.33.10001.altinitystable (altinity build))\nCode: 32. DB::Exception: Attempt to read after e…",
+      "ms": 9.535
+    },
+    {
+      "name": "distribution_queue files pending on the initiator",
+      "outcome": "value:1",
+      "ms": 0.002
+    },
+    {
+      "name": "time from shard restart to queued rows queryable",
+      "outcome": "value:1520ms",
+      "ms": 1519.669
+    }
+  ],
+  "findings": [
+    "Background Distributed inserts acknowledge before rows are queryable; foreground inserts acknowledge after the shards have them.",
+    "With a shard down, the background insert was accepted (true) and queued on the initiator's disk (1 files) until the shard returned; the foreground insert returned error:279."
+  ]
+}

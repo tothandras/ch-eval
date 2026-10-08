@@ -20,7 +20,7 @@ import (
 
 const probeDB = "ch_eval_probe"
 
-// probeRun is results/probes/<platform>/<tier>/<run-id>/probes.json.
+// probeRun is results/probes/<platform>/<tier>/<run-id> (tier = the manifest file name)/probes.json.
 type probeRun struct {
 	RunID         string         `json:"run_id"`
 	Target        string         `json:"target"`
@@ -112,7 +112,7 @@ func runProbes(ctx context.Context, f *flags, probesDir string, only []string) e
 		fmt.Printf("%-4s %-48s expect %-24s observed %s\n", status, strings.TrimPrefix(p.Path, "probes/"), r.Expect, truncate(obs, 160))
 		run.Results = append(run.Results, r)
 	}
-	dir := filepath.Join(f.resultsDir, "probes", m.Platform, m.Tier, run.RunID)
+	dir := filepath.Join(f.resultsDir, "probes", filepath.FromSlash(m.Name), run.RunID)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}

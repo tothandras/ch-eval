@@ -1,0 +1,44 @@
+{
+  "id": "S3",
+  "question": "What happens when a shard is unavailable (default vs skip_unavailable_shards=1)?",
+  "target": "altinity/local-cluster-2x2",
+  "version": "26.3.33.10001.altinitystable",
+  "started_at": "2026-10-08T07:41:39.448762522Z",
+  "steps": [
+    {
+      "name": "insert 100k rows through the Distributed table (foreground)",
+      "outcome": "ok",
+      "ms": 104.128
+    },
+    {
+      "name": "count with all shards up",
+      "outcome": "value:100000",
+      "ms": 0.003
+    },
+    {
+      "name": "stop node ch-s2r1 (shard 2)",
+      "outcome": "ok",
+      "ms": 5494.628
+    },
+    {
+      "name": "stop node ch-s2r2 (shard 2)",
+      "outcome": "ok",
+      "ms": 5011.588
+    },
+    {
+      "name": "count, default settings (skip_unavailable_shards=0)",
+      "outcome": "error:279",
+      "detail": "code: 279, message: All connection tries failed. Log: \n\nCode: 32. DB::Exception: Attempt to read after eof. (ATTEMPT_TO_READ_AFTER_EOF) (version 26.3.33.10001.altinitystable (altinity build))\nCode: 32. DB::Exception: Attempt to read after e…",
+      "ms": 8.076
+    },
+    {
+      "name": "count, skip_unavailable_shards=1",
+      "outcome": "value:50088",
+      "ms": 1055.348
+    }
+  ],
+  "findings": [
+    "With a shard down, the default query returned error:279 after 8 ms.",
+    "With skip_unavailable_shards=1 it returned value:50088 of 100000 rows, without an error, after 1055 ms: a partial total that a billing query would not notice."
+  ]
+}

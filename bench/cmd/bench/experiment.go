@@ -75,7 +75,7 @@ func runExperiments(ctx context.Context, f *flags, ids []string) error {
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "   error: %v\n", err)
 		}
-		dir := filepath.Join(f.resultsDir, "experiments", res.ID, m.Platform, m.Tier, runs.NewRunID(time.Now()))
+		dir := filepath.Join(f.resultsDir, "experiments", res.ID, filepath.FromSlash(m.Name), runs.NewRunID(time.Now()))
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return err
 		}

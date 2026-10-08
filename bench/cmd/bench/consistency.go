@@ -107,7 +107,7 @@ func runConsistency(ctx context.Context, f *flags, c consistency.Config, policie
 		}
 	}
 	runID := runs.NewRunID(time.Now())
-	dir := filepath.Join(f.resultsDir, "consistency", m.Platform, m.Tier, runID)
+	dir := filepath.Join(f.resultsDir, "consistency", filepath.FromSlash(m.Name), runID)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
