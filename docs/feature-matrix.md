@@ -9,7 +9,7 @@
 >
 > **cloud:** not probed yet; its cells are cited hypotheses *(h)*.
 >
-> **altinity** (`26.3.33.10001.altinitystable`), confirmed/probed per target: `kind` 50/50 (run `20261008T074804Z-584a`), `local-cluster` 50/50 (run `20261008T074801Z-3bda`), `local-cluster-2x2` 50/50 (run `20261008T074802Z-6f04`), `local-cluster-s3-cow` 50/50 (run `20261008T080818Z-bc7b`), `local-cluster-s3-smallcache` 50/50 (run `20261008T081145Z-212e`), `local-single` 44/44 (run `20261008T074800Z-bf28`).
+> **altinity** (`26.3.33.10001.altinitystable`), confirmed/probed per target: `kind` 50/50 (run `20261008T074804Z-584a`), `local-cluster` 50/50 (run `20261008T074801Z-3bda`), `local-cluster-2x2` 50/50 (run `20261008T074802Z-6f04`), `local-cluster-s3-cow` 50/50 (run `20261008T084352Z-d8d5`), `local-cluster-s3-smallcache` 50/50 (run `20261008T081145Z-212e`), `local-single` 44/44 (run `20261008T074800Z-bf28`).
 >
 > **upstream-oss** (`26.3.33.24`), confirmed/probed per target: `kind` 50/50 (run `20261008T081834Z-2ea0`), `local-cluster` 50/50 (run `20261008T074807Z-c68d`), `local-single` 44/44 (run `20261008T074806Z-e648`).
 

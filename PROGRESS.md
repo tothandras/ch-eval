@@ -277,8 +277,8 @@ performance (ADR-0005).
   (`results/parity/local-sharded-kind-*.md`, `local-kind-upstream-*.md`).
 - **s3 storage variants.** `local-cluster-s3-cow` (write-through caching,
   Cloud's documented default) and `local-cluster-s3-smallcache` (256 MiB)
-  passed parity and all 50 probes. The cow tier is being re-verified after the
-  write-through fix below. Each run records the effective cache
+  passed parity and all 50 probes. The cow tier passed both again after the
+  write-through fix below (`results/parity/local-s3-cow-fixed-*.md`). Each run records the effective cache
   settings and the cache occupancy after seeding (D14 mechanics, not
   performance). After 500k OpenMeter rows on 1×2, the read-only tiers held
   1,200 segments and 50.7 MB, filled by merge and fetch reads. Write-through
