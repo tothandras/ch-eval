@@ -6,7 +6,7 @@
   "image": "altinity/clickhouse-server:26.3.33.10001.altinitystable",
   "expected_version": "26.3.33.10001.altinitystable",
   "dialect": "replicated",
-  "cluster": "ch_eval",
+  "cluster": "ch-eval",
   "shards": 1,
   "replicas": 2,
   "storage": "local",

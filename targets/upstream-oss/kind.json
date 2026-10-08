@@ -6,7 +6,7 @@
   "image": "clickhouse/clickhouse-server:26.3.33.24",
   "expected_version": "26.3.33.24",
   "dialect": "replicated",
-  "cluster": "ch_eval",
+  "cluster": "ch-eval",
   "shards": 1,
   "replicas": 2,
   "storage": "local",

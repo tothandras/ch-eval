@@ -6,10 +6,11 @@ Keep it accurate enough that a fresh agent can continue.
 
 ## Current state
 
-- **Phase:** 1 complete, including the owner additions on replication and
-  sharding, compute/data separation, and scaling/rightsizing. **Waiting for
-  owner review.** Phase 2 does not start until the questions below are
-  answered.
+- **Phase:** 2 (local targets, migrations, generators, parity) in progress
+  on the owner's instruction "Continue with stages once the current
+  workstream is done". It stops before Phase 3: no paid resource is created
+  without the owner's approval and budget. The Phase 1 questions below are
+  still open; Phase 2 uses the documented defaults.
 - **AI Cost Management (internal workload):** brief received 2026-10-08,
   locally verified, deliverable written:
   `internal/ai-cost-management/REPORT.md`. Waiting for owner review.
@@ -186,6 +187,77 @@ the two s3 cache-on-write variants, and the rightsizing sweep.
 **Local cluster note.** The cluster keeps running between turns while the
 container lives. Recreate it from the README.
 
+### Phase 2: local targets, migrations, generators, parity (2026-10-08)
+
+Everything here ran on local tiers: correctness, parity and smoke only, never
+performance (ADR-0005).
+
+**Built.**
+- **Migration tool** `migrations/migrate`:
+  - dialect-aware templates (single, replicated, sharded, cloud) and lint;
+  - state in `schema_migrations_ch`, with dirty and pending (error 159) states;
+  - mutation waits and cost capture.
+  - `bench migrate status|up|down|verify|force|render`;
+    `TestMigrationLifecycle` passes on compose for both builds.
+- **Targets.**
+  - compose for `altinity` and `upstream-oss`: single, 1×2 (+3 Keeper +
+    SeaweedFS S3), 1×2 on the s3 policy, 2×2, and s3 cache variants.
+  - kind with operator 0.27.4 (see below).
+  - A cloud stub that refuses to start without approval.
+  - No connection string or secret is stored in the repository.
+- **Harness.**
+  - `bench --target --workload`; a fresh down+up migration per run;
+    explicit `async_insert` on every insert.
+  - Cluster-aware CPU probe; `metadata.json` with a drift gate.
+  - Results go to `results/<workload>/<scenario>/<platform>/<tier>/<run-id>/`.
+  - `bench compare` checks cross-target and cross-scenario value parity and
+    verifies identical seeded inputs. `--runs` compares explicit runs, for
+    ingest-path parity. COGS is adapted to the new layout.
+- **OTel.**
+  - Deterministic generators in `generators/otel` for traces, logs and five
+    metric types.
+  - A direct mapper that reproduces the contrib exporter v0.162.0.
+  - OTLP/HTTP JSON through a pinned collector (`targets/collector`).
+  - Six scenarios, ported verbatim by `migrations/tools/port_otel_ddl.py`.
+  - Full-table fingerprints in `parity/`.
+- **Probes and matrix.** `bench probe` runs 49 probes (44 SQL + 5 Go).
+  `docs/feature-matrix.yaml` (85 rows) feeds the generated
+  `docs/feature-matrix.md`.
+- **Experiments and tooling.**
+  - `bench consistency` (D7).
+  - `bench experiment S3|S4|R6|R3` (D13 local correctness).
+  - Zipf tenant skew (`--namespace-skew`).
+  - CI in `.github/workflows/ci.yml`.
+
+**Evidence (local).**
+- **OpenMeter.** Digests match 34/34 (proposal) and 30/30 (baseline) across
+  altinity and upstream on single, 1×2, 1×2-s3 and 2×2. The 2×2 runs used 1
+  and 8 namespaces.
+- **OTel.**
+  - The collector path and the direct mapper store identical data: every
+    table's full-row fingerprint matches, in all six scenarios.
+  - Cross-target parity is green on single and 1×2 for both builds;
+    otel-traces also on 2×2.
+  - The two schema variants agree on every shared query.
+- **Probes.** All 49 pass on altinity 26.3.33.10001 and upstream 26.3.33.24,
+  single and 1×2. No starting hypothesis is contradicted locally.
+- **Tracked runs.** `results/parity/local-*.md` holds the tracked parity run
+  from a clean commit.
+
+**Findings along the way** (no performance claims):
+- 26.2+ defaults `async_insert=1`, so the harness must set it explicitly.
+  Otherwise the server default would decide the insert path on one target only.
+- Sharding by `cityHash64(namespace)` puts a single-tenant dataset on one
+  shard. Parity on a sharded target therefore also needs multi-namespace data.
+- The Altinity operator rejects cluster names with `_`
+  (`^[a-zA-Z0-9-]{0,15}$`), so kind tiers use `ch-eval`.
+- The operator bundle pulls with `imagePullPolicy: Always`. Offline kind nodes
+  need a local `IfNotPresent` copy, and that is the only deviation.
+- The forked harness counted untracked `results/` as dirty. This is fixed.
+- Local compose tiers filled the sandbox disk through `information`-level
+  Docker logs. They now log at `warning`, rotate logs, and keep only the system
+  logs the harness reads.
+
 ## Questions for the owner (Phase 1 stop point)
 
 1. **Budget:** what is the cap for paid resources, and which AWS account or
@@ -254,17 +326,16 @@ container lives. Recreate it from the README.
     It cannot reach the team's clusters itself. Should `internal/` stay in
     this repository at all?
 
-## Next (Phase 2, after approval)
+## Next
 
-See `openspec/changes/cross-target-evaluation/tasks.md` §2:
-- compose and kind targets;
-- target metadata and results layout;
-- migration tool and tests;
-- probes and the generated feature matrix;
-- OTel generators and the collector path;
-- cross-target compare;
-- CI;
-- the replica-consistency smoke run.
+- **Remaining Phase 2 items** (`tasks.md` §2):
+  - the kind runs (migrations, parity, probes, R3/E5/E6);
+  - experiments S3/S4/R6 on compose;
+  - the replica-consistency smoke run;
+  - the s3 cache-variant runs.
+- **Phase 3 (paid) needs the owner's go-ahead:** budget, region, shape, and
+  the open questions above. A spend estimate is presented before anything is
+  created.
 
 ## Environment notes (for resuming in a fresh container)
 
