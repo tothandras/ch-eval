@@ -1,0 +1,423 @@
+{
+  "scenario": "clickstack",
+  "harness_commit": "d75d88e",
+  "sweep_id": "20261008T072824Z",
+  "started_at": "2026-10-08T07:28:24.762984301Z",
+  "finished_at": "2026-10-08T07:28:39.604274355Z",
+  "cluster": {
+    "version": "26.3.33.10001.altinitystable",
+    "is_single_node": true,
+    "clusters": [
+      "default"
+    ]
+  },
+  "concurrency": [
+    1
+  ],
+  "repeat": 1,
+  "ingest": {
+    "source": "otel-direct",
+    "rows": 496716,
+    "duration_seconds": 8.863415629,
+    "events_per_second": 56041.14946102794,
+    "batch_size": 10000
+  },
+  "queries": [
+    {
+      "name": "cpu_by_service_1h",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.009,
+      "p10_sec": 0.009,
+      "p20_sec": 0.009,
+      "p30_sec": 0.011,
+      "p40_sec": 0.011,
+      "p50_sec": 0.011,
+      "p60_sec": 0.011,
+      "p70_sec": 0.011,
+      "p80_sec": 0.034,
+      "p90_sec": 0.034,
+      "p95_sec": 0.034,
+      "p99_sec": 0.034,
+      "p99_9_sec": 0.034,
+      "p99_99_sec": 0.034,
+      "qps": 16.098,
+      "rps": 767890.566,
+      "mib_per_sec": 10.29,
+      "result_rps": 28977.003,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 13329,
+      "cpu_p95_us": 31678.199999999997,
+      "mem_avg_bytes": 83434,
+      "cpu_source": "os_cpu",
+      "cache_state": "warm"
+    },
+    {
+      "name": "error_ratio_1h",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.168,
+      "p10_sec": 0.168,
+      "p20_sec": 0.168,
+      "p30_sec": 0.171,
+      "p40_sec": 0.171,
+      "p50_sec": 0.171,
+      "p60_sec": 0.171,
+      "p70_sec": 0.171,
+      "p80_sec": 0.181,
+      "p90_sec": 0.181,
+      "p95_sec": 0.181,
+      "p99_sec": 0.181,
+      "p99_9_sec": 0.181,
+      "p99_99_sec": 0.181,
+      "qps": 4.708,
+      "rps": 1176782.263,
+      "mib_per_sec": 304.021,
+      "result_rps": 89.454,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 215559,
+      "cpu_p95_us": 232491.6,
+      "mem_avg_bytes": 23076772.666666668,
+      "cpu_source": "os_cpu",
+      "cache_state": "warm"
+    },
+    {
+      "name": "gc_pause_median_1h",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.009,
+      "p10_sec": 0.009,
+      "p20_sec": 0.009,
+      "p30_sec": 0.009,
+      "p40_sec": 0.009,
+      "p50_sec": 0.009,
+      "p60_sec": 0.009,
+      "p70_sec": 0.009,
+      "p80_sec": 0.012,
+      "p90_sec": 0.012,
+      "p95_sec": 0.012,
+      "p99_sec": 0.012,
+      "p99_9_sec": 0.012,
+      "p99_99_sec": 0.012,
+      "qps": 19,
+      "rps": 42294.433,
+      "mib_per_sec": 4.129,
+      "result_rps": 133.001,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 11581,
+      "cpu_p95_us": 12899.5,
+      "mem_avg_bytes": 56924.666666666664,
+      "cpu_source": "os_cpu",
+      "cache_state": "warm"
+    },
+    {
+      "name": "latency_p95_by_route_1h",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.113,
+      "p10_sec": 0.113,
+      "p20_sec": 0.113,
+      "p30_sec": 0.13,
+      "p40_sec": 0.13,
+      "p50_sec": 0.13,
+      "p60_sec": 0.13,
+      "p70_sec": 0.13,
+      "p80_sec": 0.154,
+      "p90_sec": 0.154,
+      "p95_sec": 0.154,
+      "p99_sec": 0.154,
+      "p99_9_sec": 0.154,
+      "p99_99_sec": 0.154,
+      "qps": 5.777,
+      "rps": 692528.954,
+      "mib_per_sec": 354.218,
+      "result_rps": 231.062,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 124173,
+      "cpu_p95_us": 151745.4,
+      "mem_avg_bytes": 15886778,
+      "cpu_source": "os_cpu",
+      "cache_state": "warm"
+    },
+    {
+      "name": "memory_by_pod_1h",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.021,
+      "p10_sec": 0.021,
+      "p20_sec": 0.021,
+      "p30_sec": 0.022,
+      "p40_sec": 0.022,
+      "p50_sec": 0.022,
+      "p60_sec": 0.022,
+      "p70_sec": 0.022,
+      "p80_sec": 0.048,
+      "p90_sec": 0.048,
+      "p95_sec": 0.048,
+      "p99_sec": 0.048,
+      "p99_9_sec": 0.048,
+      "p99_99_sec": 0.048,
+      "qps": 13.814,
+      "rps": 658935.534,
+      "mib_per_sec": 23.624,
+      "result_rps": 1243.275,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 24426,
+      "cpu_p95_us": 50349.59999999999,
+      "mem_avg_bytes": 4260807,
+      "cpu_source": "os_cpu",
+      "cache_state": "warm"
+    },
+    {
+      "name": "request_rate_by_route_1h",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.165,
+      "p10_sec": 0.165,
+      "p20_sec": 0.165,
+      "p30_sec": 0.181,
+      "p40_sec": 0.181,
+      "p50_sec": 0.181,
+      "p60_sec": 0.181,
+      "p70_sec": 0.181,
+      "p80_sec": 0.183,
+      "p90_sec": 0.183,
+      "p95_sec": 0.183,
+      "p99_sec": 0.183,
+      "p99_9_sec": 0.183,
+      "p99_99_sec": 0.183,
+      "qps": 4.687,
+      "rps": 1171565.415,
+      "mib_per_sec": 302.674,
+      "result_rps": 18767.695,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 347888,
+      "cpu_p95_us": 349290.2,
+      "mem_avg_bytes": 51118527.666666664,
+      "cpu_source": "os_cpu",
+      "cache_state": "warm"
+    },
+    {
+      "name": "rpc_count_by_method_1h",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.06,
+      "p10_sec": 0.06,
+      "p20_sec": 0.06,
+      "p30_sec": 0.067,
+      "p40_sec": 0.067,
+      "p50_sec": 0.067,
+      "p60_sec": 0.067,
+      "p70_sec": 0.067,
+      "p80_sec": 0.102,
+      "p90_sec": 0.102,
+      "p95_sec": 0.102,
+      "p99_sec": 0.102,
+      "p99_9_sec": 0.102,
+      "p99_99_sec": 0.102,
+      "qps": 8.409,
+      "rps": 647154.175,
+      "mib_per_sec": 200.21,
+      "result_rps": 798.893,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 64319,
+      "cpu_p95_us": 101900.3,
+      "mem_avg_bytes": 4197549.666666667,
+      "cpu_source": "os_cpu",
+      "cache_state": "warm"
+    },
+    {
+      "name": "series_by_metric",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.146,
+      "p10_sec": 0.146,
+      "p20_sec": 0.146,
+      "p30_sec": 0.159,
+      "p40_sec": 0.159,
+      "p50_sec": 0.159,
+      "p60_sec": 0.159,
+      "p70_sec": 0.159,
+      "p80_sec": 0.186,
+      "p90_sec": 0.186,
+      "p95_sec": 0.186,
+      "p99_sec": 0.186,
+      "p99_9_sec": 0.186,
+      "p99_99_sec": 0.186,
+      "qps": 4.972,
+      "rps": 2469667.924,
+      "mib_per_sec": 680.952,
+      "result_rps": 34.804,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 316295,
+      "cpu_p95_us": 372530.6,
+      "mem_avg_bytes": 23601563.333333332,
+      "cpu_source": "os_cpu",
+      "cache_state": "warm"
+    },
+    {
+      "name": "user_requests",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.006,
+      "p10_sec": 0.006,
+      "p20_sec": 0.006,
+      "p30_sec": 0.007,
+      "p40_sec": 0.007,
+      "p50_sec": 0.007,
+      "p60_sec": 0.007,
+      "p70_sec": 0.007,
+      "p80_sec": 0.009,
+      "p90_sec": 0.009,
+      "p95_sec": 0.009,
+      "p99_sec": 0.009,
+      "p99_9_sec": 0.009,
+      "p99_99_sec": 0.009,
+      "qps": 20.248,
+      "rps": 0,
+      "mib_per_sec": 0,
+      "result_rps": 0,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 7198,
+      "cpu_p95_us": 8686.6,
+      "mem_avg_bytes": 40740,
+      "cpu_source": "os_cpu",
+      "cache_state": "warm"
+    }
+  ],
+  "value_parity": {
+    "from": "2026-05-31 22:15:00",
+    "to": "2026-06-01 00:00:01",
+    "time_end": "2026-06-01T00:00:00Z",
+    "digests": {
+      "cpu_by_service_1h": {
+        "hash": "f4719edd1e01deb27bc0dbfcf0fec93ce87f38db92acc8dd2dba79627edc00b3",
+        "rows": 1800
+      },
+      "error_ratio_1h": {
+        "hash": "2618bd091e6dc9d1d5192268efefc1ed1597986f5f3bea4c64020a38b7376ed4",
+        "rows": 19
+      },
+      "gc_pause_median_1h": {
+        "hash": "8d441616a3cbcf98b231bb6807198880d57d7517e2b87c224832bac415d2b3ad",
+        "rows": 7
+      },
+      "latency_p95_by_route_1h": {
+        "hash": "de1877b39c431ea4aa8c0823530ca9a5bc99e62f4a2b8742b919e55a2305bb77",
+        "rows": 40
+      },
+      "memory_by_pod_1h": {
+        "hash": "f8705f62ca0c17827de990d6d12fd03f406f6266c6e993b0650c5d2c78ce8992",
+        "rows": 90
+      },
+      "parity/exponential_histogram_rows": {
+        "hash": "85b936c3fca9f25e6fe55e65740dd08ab7e79dbad4c95ba4dcbb040f664b1300",
+        "rows": 1
+      },
+      "parity/gauge_rows": {
+        "hash": "9a769a68c65afb91f13e761b85772fbcc613d93e60a9833f48d15a6165005949",
+        "rows": 1
+      },
+      "parity/histogram_rows": {
+        "hash": "d0ddcd463ef36af6c8952fc931aaf706a0e23f7726e2eda979518e1235745825",
+        "rows": 1
+      },
+      "parity/sum_rows": {
+        "hash": "9b9fb1c0c937a1cea92c0a7b9ff1e06e6d8061865d408c330be17b9faa165bde",
+        "rows": 1
+      },
+      "parity/summary_rows": {
+        "hash": "2007ff1b6a675d0c07b925682424e31998c99d7db6148b6fcfc4ab03d017ba59",
+        "rows": 1
+      },
+      "request_rate_by_route_1h": {
+        "hash": "0e6152a8d9f9f0e9498ac961531fcfb113e7039a9496ddfdf7727231c9373741",
+        "rows": 4004
+      },
+      "rpc_count_by_method_1h": {
+        "hash": "e52d2c46f3eabdf01628074c07eeaf1a2ff861c33d33bc0a34b1fc506f805cd8",
+        "rows": 95
+      },
+      "series_by_metric": {
+        "hash": "d9d595b6156db45f7bfed241278f398e0e9d975afe77ecca5a5e908316045145",
+        "rows": 7
+      },
+      "user_requests": {
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "rows": 0
+      }
+    }
+  },
+  "run_id": "20261008T072824Z-c84b",
+  "workload": "otel-metrics",
+  "target": {
+    "name": "altinity/local-single",
+    "platform": "altinity",
+    "tier": "local-single",
+    "dialect": "single",
+    "shards": 1,
+    "replicas": 1,
+    "storage": "local",
+    "version": "26.3.33.10001.altinitystable"
+  },
+  "seed": {
+    "generator": "otel-metrics",
+    "rows": 496716,
+    "rng_seed": 42,
+    "namespaces": 1,
+    "time_end": "2026-06-01T00:00:00Z",
+    "table": "otel_metrics_clickstack.otel_metrics_gauge",
+    "settings": {
+      "async_insert": 0
+    },
+    "ingest_path": "direct",
+    "table_rows": {
+      "otel_metrics_exponential_histogram": 76956,
+      "otel_metrics_gauge": 47700,
+      "otel_metrics_histogram": 119886,
+      "otel_metrics_sum": 249948,
+      "otel_metrics_summary": 2226
+    },
+    "notes": [
+      "4686 series"
+    ]
+  },
+  "migrations": [
+    {
+      "version": 20261008000000,
+      "name": "create_otel_metrics",
+      "direction": "up",
+      "status": "applied",
+      "checksum": "40e73cdcbd14e0ecb27e0d256b71d5ca43724b7aef060bea83af0a3b7ce4f0e5",
+      "duration_ms": 68,
+      "statements": [
+        {
+          "sql": "CREATE TABLE IF NOT EXISTS otel_metrics_clickstack.otel_metrics_gauge \n(\n    `ResourceAttributes` Map(LowCardinality(String), String) CODEC(ZSTD(1)),\n    `ResourceSchemaUrl` String CODEC(ZSTD(1)),\n    `ScopeName` String CODEC(ZSTD(1)),\n    `ScopeVersion` String CODEC(ZSTD(1)),\n    `ScopeAttributes` Map(LowCardinality(String), String) CODEC(ZSTD(1)),\n    `ScopeDroppedAttrCount` UInt32 CODEC(ZSTD(1)),\n    `ScopeSchemaUrl` String CODEC(ZSTD(1)),\n    `ServiceName` LowCardinality(String) CODEC(ZSTD(1)),\n    `MetricName` LowCardinality(String) CODEC(ZSTD(1)),\n    `MetricDescription` String CODEC(ZSTD(1)),\n    `MetricUnit` String CODEC(ZSTD(1)),\n    `Attributes` Map(LowCardinality(String), String) CODEC(ZSTD(1)),\n    `StartTimeUnix` DateTime CODEC(Delta, ZSTD(1)),\n    `TimeUnix` DateTime CODEC(Delta, ZSTD(1)),\n    `Value` Float64 CODEC(ZSTD(1)),\n    `Flags` UInt32 CODEC(ZSTD(1)),\n    `Exemplars.FilteredAttributes` Array(Map(LowCardinality(String), String)) CODEC(ZSTD(1)),\n    `Exemplars.TimeUnix` Array(DateTime) CODEC(ZSTD(1)),\n    `Exemplars.Value` Array(Float64) CODEC(ZSTD(1)),\n    `Exemplars.SpanId` Array(String) CODEC(ZSTD(1)),\n    `Exemplars.TraceId` Array(String) CODEC(ZSTD(1)),\n    INDEX idx_res_attr_key mapKeys(ResourceAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_res_attr_value mapValues(ResourceAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_scope_attr_key mapKeys(ScopeAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_scope_attr_value mapValues(ScopeAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_attr_key mapKeys(Attributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_attr_value mapValues(Attributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_time_minmax TimeUnix TYPE minmax GRANULARITY 1\n)\nENGINE = MergeTree\nPARTITION BY toDate(TimeUnix)\nORDER BY (ServiceName, MetricName, toStartOfHour(TimeUnix), cityHash64(Attributes), TimeUnix)\nTTL toDateTime(TimeUnix) + toIntervalDay(3650)\nSETTINGS ttl_only_drop_parts = 1",
+          "wall_ms": 7.334,
+          "mutation_wait_ms": 6.642
+        },
+        {
+          "sql": "CREATE TABLE IF NOT EXISTS otel_metrics_clickstack.otel_metrics_sum \n(\n    `ResourceAttributes` Map(LowCardinality(String), String) CODEC(ZSTD(1)),\n    `ResourceSchemaUrl` String CODEC(ZSTD(1)),\n    `ScopeName` String CODEC(ZSTD(1)),\n    `ScopeVersion` String CODEC(ZSTD(1)),\n    `ScopeAttributes` Map(LowCardinality(String), String) CODEC(ZSTD(1)),\n    `ScopeDroppedAttrCount` UInt32 CODEC(ZSTD(1)),\n    `ScopeSchemaUrl` String CODEC(ZSTD(1)),\n    `ServiceName` LowCardinality(String) CODEC(ZSTD(1)),\n    `MetricName` LowCardinality(String) CODEC(ZSTD(1)),\n    `MetricDescription` String CODEC(ZSTD(1)),\n    `MetricUnit` String CODEC(ZSTD(1)),\n    `Attributes` Map(LowCardinality(String), String) CODEC(ZSTD(1)),\n    `StartTimeUnix` DateTime CODEC(Delta, ZSTD(1)),\n    `TimeUnix` DateTime CODEC(Delta, ZSTD(1)),\n    `Value` Float64 CODEC(ZSTD(1)),\n    `Flags` UInt32 CODEC(ZSTD(1)),\n    `Exemplars.FilteredAttributes` Array(Map(LowCardinality(String), String)) CODEC(ZSTD(1)),\n    `Exemplars.TimeUnix` Array(DateTime) CODEC(ZSTD(1)),\n    `Exemplars.Value` Array(Float64) CODEC(ZSTD(1)),\n    `Exemplars.SpanId` Array(String) CODEC(ZSTD(1)),\n    `Exemplars.TraceId` Array(String) CODEC(ZSTD(1)),\n    `AggregationTemporality` Int32 CODEC(ZSTD(1)),\n    `IsMonotonic` Bool CODEC(ZSTD(1)),\n    INDEX idx_res_attr_key mapKeys(ResourceAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_res_attr_value mapValues(ResourceAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_scope_attr_key mapKeys(ScopeAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_scope_attr_value mapValues(ScopeAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_attr_key mapKeys(Attributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_attr_value mapValues(Attributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_time_minmax TimeUnix TYPE minmax GRANULARITY 1\n)\nENGINE = MergeTree\nPARTITION BY toDate(TimeUnix)\nORDER BY (ServiceName, MetricName, toStartOfHour(TimeUnix), cityHash64(Attributes), TimeUnix)\nTTL toDateTime(TimeUnix) + toIntervalDay(3650)\nSETTINGS ttl_only_drop_parts = 1",
+          "wall_ms": 9.997,
+          "mutation_wait_ms": 4.407
+        },
+        {
+          "sql": "CREATE TABLE IF NOT EXISTS otel_metrics_clickstack.otel_metrics_histogram \n(\n    `ResourceAttributes` Map(LowCardinality(String), String) CODEC(ZSTD(1)),\n    `ResourceSchemaUrl` String CODEC(ZSTD(1)),\n    `ScopeName` String CODEC(ZSTD(1)),\n    `ScopeVersion` String CODEC(ZSTD(1)),\n    `ScopeAttributes` Map(LowCardinality(String), String) CODEC(ZSTD(1)),\n    `ScopeDroppedAttrCount` UInt32 CODEC(ZSTD(1)),\n    `ScopeSchemaUrl` String CODEC(ZSTD(1)),\n    `ServiceName` LowCardinality(String) CODEC(ZSTD(1)),\n    `MetricName` LowCardinality(String) CODEC(ZSTD(1)),\n    `MetricDescription` String CODEC(ZSTD(1)),\n    `MetricUnit` String CODEC(ZSTD(1)),\n    `Attributes` Map(LowCardinality(String), String) CODEC(ZSTD(1)),\n    `StartTimeUnix` DateTime CODEC(Delta, ZSTD(1)),\n    `TimeUnix` DateTime CODEC(Delta, ZSTD(1)),\n    `Count` UInt64 CODEC(Delta(8), ZSTD(1)),\n    `Sum` Float64 CODEC(ZSTD(1)),\n    `BucketCounts` Array(UInt64) CODEC(ZSTD(1)),\n    `ExplicitBounds` Array(Float64) CODEC(ZSTD(1)),\n    `Exemplars.FilteredAttributes` Array(Map(LowCardinality(String), String)) CODEC(ZSTD(1)),\n    `Exemplars.TimeUnix` Array(DateTime) CODEC(ZSTD(1)),\n    `Exemplars.Value` Array(Float64) CODEC(ZSTD(1)),\n    `Exemplars.SpanId` Array(String) CODEC(ZSTD(1)),\n    `Exemplars.TraceId` Array(String) CODEC(ZSTD(1)),\n    `Flags` UInt32 CODEC(ZSTD(1)),\n    `Min` Float64 CODEC(ZSTD(1)),\n    `Max` Float64 CODEC(ZSTD(1)),\n    `AggregationTemporality` Int32 CODEC(ZSTD(1)),\n    INDEX idx_res_attr_key mapKeys(ResourceAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_res_attr_value mapValues(ResourceAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_scope_attr_key mapKeys(ScopeAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_scope_attr_value mapValues(ScopeAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_attr_key mapKeys(Attributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_attr_value mapValues(Attributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_time_minmax TimeUnix TYPE minmax GRANULARITY 1\n)\nENGINE = MergeTree\nPARTITION BY toDate(TimeUnix)\nORDER BY (ServiceName, MetricName, toStartOfHour(TimeUnix), cityHash64(Attributes), TimeUnix)\nTTL toDateTime(TimeUnix) + toIntervalDay(3650)\nSETTINGS ttl_only_drop_parts = 1",
+          "wall_ms": 7.506,
+          "mutation_wait_ms": 4.023
+        },
+        {
+          "sql": "CREATE TABLE IF NOT EXISTS otel_metrics_clickstack.otel_metrics_exponential_histogram \n(\n    `ResourceAttributes` Map(LowCardinality(String), String) CODEC(ZSTD(1)),\n    `ResourceSchemaUrl` String CODEC(ZSTD(1)),\n    `ScopeName` String CODEC(ZSTD(1)),\n    `ScopeVersion` String CODEC(ZSTD(1)),\n    `ScopeAttributes` Map(LowCardinality(String), String) CODEC(ZSTD(1)),\n    `ScopeDroppedAttrCount` UInt32 CODEC(ZSTD(1)),\n    `ScopeSchemaUrl` String CODEC(ZSTD(1)),\n    `ServiceName` LowCardinality(String) CODEC(ZSTD(1)),\n    `MetricName` LowCardinality(String) CODEC(ZSTD(1)),\n    `MetricDescription` String CODEC(ZSTD(1)),\n    `MetricUnit` String CODEC(ZSTD(1)),\n    `Attributes` Map(LowCardinality(String), String) CODEC(ZSTD(1)),\n    `StartTimeUnix` DateTime CODEC(Delta, ZSTD(1)),\n    `TimeUnix` DateTime CODEC(Delta, ZSTD(1)),\n    `Count` UInt64 CODEC(Delta(8), ZSTD(1)),\n    `Sum` Float64 CODEC(ZSTD(1)),\n    `Scale` Int32 CODEC(ZSTD(1)),\n    `ZeroCount` UInt64 CODEC(ZSTD(1)),\n    `PositiveOffset` Int32 CODEC(ZSTD(1)),\n    `PositiveBucketCounts` Array(UInt64) CODEC(ZSTD(1)),\n    `NegativeOffset` Int32 CODEC(ZSTD(1)),\n    `NegativeBucketCounts` Array(UInt64) CODEC(ZSTD(1)),\n    `Exemplars.FilteredAttributes` Array(Map(LowCardinality(String), String)) CODEC(ZSTD(1)),\n    `Exemplars.TimeUnix` Array(DateTime) CODEC(ZSTD(1)),\n    `Exemplars.Value` Array(Float64) CODEC(ZSTD(1)),\n    `Exemplars.SpanId` Array(String) CODEC(ZSTD(1)),\n    `Exemplars.TraceId` Array(String) CODEC(ZSTD(1)),\n    `Flags` UInt32 CODEC(ZSTD(1)),\n    `Min` Float64 CODEC(ZSTD(1)),\n    `Max` Float64 CODEC(ZSTD(1)),\n    `AggregationTemporality` Int32 CODEC(ZSTD(1)),\n    INDEX idx_res_attr_key mapKeys(ResourceAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_res_attr_value mapValues(ResourceAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_scope_attr_key mapKeys(ScopeAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_scope_attr_value mapValues(ScopeAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_attr_key mapKeys(Attributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_attr_value mapValues(Attributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_time_minmax TimeUnix TYPE minmax GRANULARITY 1\n)\nENGINE = MergeTree\nPARTITION BY toDate(TimeUnix)\nORDER BY (ServiceName, MetricName, toStartOfHour(TimeUnix), cityHash64(Attributes), TimeUnix)\nTTL toDateTime(TimeUnix) + toIntervalDay(3650)\nSETTINGS ttl_only_drop_parts = 1",
+          "wall_ms": 10.269,
+          "mutation_wait_ms": 4.946
+        },
+        {
+          "sql": "CREATE TABLE IF NOT EXISTS otel_metrics_clickstack.otel_metrics_summary \n(\n    `ResourceAttributes` Map(LowCardinality(String), String) CODEC(ZSTD(1)),\n    `ResourceSchemaUrl` String CODEC(ZSTD(1)),\n    `ScopeName` String CODEC(ZSTD(1)),\n    `ScopeVersion` String CODEC(ZSTD(1)),\n    `ScopeAttributes` Map(LowCardinality(String), String) CODEC(ZSTD(1)),\n    `ScopeDroppedAttrCount` UInt32 CODEC(ZSTD(1)),\n    `ScopeSchemaUrl` String CODEC(ZSTD(1)),\n    `ServiceName` LowCardinality(String) CODEC(ZSTD(1)),\n    `MetricName` LowCardinality(String) CODEC(ZSTD(1)),\n    `MetricDescription` String CODEC(ZSTD(1)),\n    `MetricUnit` String CODEC(ZSTD(1)),\n    `Attributes` Map(LowCardinality(String), String) CODEC(ZSTD(1)),\n    `StartTimeUnix` DateTime CODEC(Delta, ZSTD(1)),\n    `TimeUnix` DateTime CODEC(Delta, ZSTD(1)),\n    `Count` UInt64 CODEC(Delta(8), ZSTD(1)),\n    `Sum` Float64 CODEC(ZSTD(1)),\n    `ValueAtQuantiles.Quantile` Array(Float64) CODEC(ZSTD(1)),\n    `ValueAtQuantiles.Value` Array(Float64) CODEC(ZSTD(1)),\n    `Flags` UInt32 CODEC(ZSTD(1)),\n    INDEX idx_res_attr_key mapKeys(ResourceAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_res_attr_value mapValues(ResourceAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_scope_attr_key mapKeys(ScopeAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_scope_attr_value mapValues(ScopeAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_attr_key mapKeys(Attributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_attr_value mapValues(Attributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_time_minmax TimeUnix TYPE minmax GRANULARITY 1\n)\nENGINE = MergeTree\nPARTITION BY toDate(TimeUnix)\nORDER BY (ServiceName, MetricName, toStartOfHour(TimeUnix), cityHash64(Attributes), TimeUnix)\nTTL toDateTime(TimeUnix) + toIntervalDay(3650)\nSETTINGS ttl_only_drop_parts = 1",
+          "wall_ms": 8.542,
+          "mutation_wait_ms": 4.592
+        }
+      ]
+    }
+  ],
+  "smoke_only": true
+}

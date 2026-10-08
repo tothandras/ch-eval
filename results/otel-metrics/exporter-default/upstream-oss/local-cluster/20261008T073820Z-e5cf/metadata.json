@@ -1,0 +1,168 @@
+{
+  "captured_at": "2026-10-08T07:37:51.931866574Z",
+  "manifest": {
+    "name": "upstream-oss/local-cluster",
+    "platform": "upstream-oss",
+    "tier": "local-cluster",
+    "deployment": "compose-1x2",
+    "image": "clickhouse/clickhouse-server:26.3.33.24",
+    "expected_version": "26.3.33.24",
+    "dialect": "replicated",
+    "cluster": "ch_eval",
+    "shards": 1,
+    "replicas": 2,
+    "storage": "local",
+    "storage_policy": "",
+    "shape": {
+      "vcpu_per_replica": null,
+      "gib_per_replica": null
+    },
+    "location": "local-docker",
+    "dsn_env": "CLICKHOUSE_DSN_UPSTREAM_OSS_LOCAL_CLUSTER",
+    "notes": "Local tier: correctness, parity and smoke only (ADR-0005). Never a performance result.",
+    "ports": {
+      "native_base": 29100,
+      "http_base": 28223
+    },
+    "keeper_image": "clickhouse/clickhouse-keeper:26.3.33.24",
+    "keepers": 3,
+    "mem_bytes_per_node": 2500000000
+  },
+  "dsn_source": "local tier default",
+  "version": "26.3.33.24",
+  "replicas": [
+    {
+      "host": "ch-s1r1",
+      "version": "26.3.33.24",
+      "uptime_sec": 889
+    },
+    {
+      "host": "ch-s1r2",
+      "version": "26.3.33.24",
+      "uptime_sec": 889
+    }
+  ],
+  "build_options": {
+    "BUILD_TYPE": "RelWithDebInfo",
+    "CXX_COMPILER": "/usr/bin/clang++-21",
+    "GIT_HASH": "211b7286fd9682a62705a8335e2c77500a0969a1",
+    "SYSTEM": "Linux",
+    "SYSTEM_PROCESSOR": "x86_64",
+    "VERSION_DESCRIBE": "v26.3.33.24-lts",
+    "VERSION_FULL": "ClickHouse 26.3.33.24",
+    "VERSION_GITHASH": "211b7286fd9682a62705a8335e2c77500a0969a1",
+    "VERSION_OFFICIAL": " (official build)"
+  },
+  "clusters": [
+    {
+      "cluster": "ch_eval",
+      "shard_num": 1,
+      "replica_num": 1,
+      "host_name": "ch-s1r1"
+    },
+    {
+      "cluster": "ch_eval",
+      "shard_num": 1,
+      "replica_num": 2,
+      "host_name": "ch-s1r2"
+    }
+  ],
+  "macros": {
+    "cluster": "ch_eval",
+    "replica": "ch-s1r1",
+    "shard": "1"
+  },
+  "disks": [
+    {
+      "name": "default",
+      "type": "Local",
+      "total_bytes": 270553174016,
+      "free_bytes": 9106599936
+    },
+    {
+      "name": "s3",
+      "type": "ObjectStorage",
+      "total_bytes": 18446744073709551615,
+      "free_bytes": 18446744073709551615
+    },
+    {
+      "name": "s3_cache",
+      "type": "ObjectStorage",
+      "total_bytes": 18446744073709551615,
+      "free_bytes": 18446744073709551615
+    }
+  ],
+  "storage_policies": [
+    "default",
+    "s3_cached"
+  ],
+  "changed_settings": {
+    "session": {
+      "enable_producing_buckets_out_of_order_in_aggregation": "0"
+    },
+    "merge_tree": {},
+    "server": {
+      "async_load_databases": "1",
+      "concurrent_threads_scheduler": "max_min_fair",
+      "concurrent_threads_soft_limit_num": "0",
+      "concurrent_threads_soft_limit_ratio_to_cores": "2",
+      "config-file": "/etc/clickhouse-server/config.xml",
+      "default_database": "default",
+      "dictionaries_lazy_load": "1",
+      "distributed_ddl.path": "/clickhouse/task_queue/ddl",
+      "distributed_ddl.replicas_path": "/clickhouse/task_queue/replicas",
+      "format_schema_path": "/var/lib/clickhouse/format_schemas/",
+      "google_protos_path": "/usr/share/clickhouse/protos/",
+      "interserver_http_port": "9009",
+      "keep_alive_timeout": "10",
+      "keeper_hosts": "keeper1:9181,keeper2:9181,keeper3:9181",
+      "listen_try": "1",
+      "logger.console": "1",
+      "logger.count": "10",
+      "logger.errorlog": "/var/log/clickhouse-server/clickhouse-server.err.log",
+      "logger.level": "warning",
+      "logger.log": "/var/log/clickhouse-server/clickhouse-server.log",
+      "logger.size": "1000M",
+      "mark_cache_size": "268435456",
+      "max_concurrent_queries": "1000",
+      "max_server_memory_usage": "2500000000",
+      "max_server_memory_usage_to_ram_ratio": "0.9",
+      "max_thread_pool_size": "10000",
+      "mlock_executable": "1",
+      "mlock_executable_min_total_memory_amount_bytes": "5000000000",
+      "openSSL.client.cacheSessions": "1",
+      "openSSL.client.disableProtocols": "sslv2,sslv3",
+      "openSSL.client.invalidCertificateHandler.name": "RejectCertificateHandler",
+      "openSSL.client.loadDefaultCAFile": "1",
+      "openSSL.client.preferServerCiphers": "1",
+      "openSSL.server.cacheSessions": "1",
+      "openSSL.server.disableProtocols": "sslv2,sslv3",
+      "openSSL.server.invalidCertificateHandler.name": "RejectCertificateHandler",
+      "openSSL.server.loadDefaultCAFile": "1",
+      "openSSL.server.preferServerCiphers": "1",
+      "openSSL.server.verificationMode": "none",
+      "path": "/var/lib/clickhouse/",
+      "query_condition_cache_size": "106700800",
+      "remap_executable": "0",
+      "tmp_path": "/var/lib/clickhouse/tmp/",
+      "total_memory_profiler_step": "4194304",
+      "total_memory_tracker_sample_probability": "0",
+      "uncompressed_cache_size": "8589934592",
+      "user_files_path": "/var/lib/clickhouse/user_files/",
+      "validate_tcp_client_information": "0",
+      "wait_dictionaries_load_at_startup": "1"
+    }
+  },
+  "limits": {
+    "cgroup_max_cpu": 0,
+    "max_threads": 4,
+    "os_memory_total": 16876494848,
+    "cgroup_memory_limit": 9223372036854771712,
+    "max_server_memory_usage": 2500000000
+  },
+  "client": {
+    "hostname": "vm",
+    "go_version": "go1.26.2",
+    "harness_commit": "d75d88e"
+  }
+}
