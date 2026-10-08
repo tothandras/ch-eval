@@ -26,6 +26,7 @@ type Metadata struct {
 	Disks       []DiskRow         `json:"disks"`
 	Policies    []string          `json:"storage_policies"`
 	Caches      []CacheRow        `json:"filesystem_caches,omitempty"`
+	CacheConfig []CacheSettings   `json:"filesystem_cache_settings,omitempty"`
 	Changed     Changed           `json:"changed_settings"`
 	Limits      Limits            `json:"limits"`
 	Client      Client            `json:"client"`
@@ -65,6 +66,16 @@ type CacheRow struct {
 	CachePath string `json:"cache_path"`
 	Segments  uint64 `json:"segments"`
 	Bytes     uint64 `json:"bytes"`
+}
+
+// CacheSettings is a filesystem cache's effective configuration on the connected
+// node (system.filesystem_cache_settings): the knobs D14 compares across targets.
+type CacheSettings struct {
+	Name    string `json:"cache_name"`
+	Path    string `json:"path"`
+	MaxSize uint64 `json:"max_size"`
+	OnWrite bool   `json:"cache_on_write_operations"`
+	Policy  string `json:"cache_policy"`
 }
 
 // Changed holds settings that differ from defaults, per scope.
@@ -173,6 +184,17 @@ func Capture(ctx context.Context, conn driver.Conn, m Manifest, dsnSource, harne
 		rows.Close()
 	} else {
 		errf("filesystem_cache", err)
+	}
+	if rows, err := conn.Query(ctx, "SELECT cache_name, path, max_size, toBool(cache_on_write_operations), cache_policy FROM system.filesystem_cache_settings ORDER BY cache_name"); err == nil {
+		for rows.Next() {
+			var c CacheSettings
+			if rows.Scan(&c.Name, &c.Path, &c.MaxSize, &c.OnWrite, &c.Policy) == nil {
+				md.CacheConfig = append(md.CacheConfig, c)
+			}
+		}
+		rows.Close()
+	} else {
+		errf("filesystem_cache_settings", err)
 	}
 	if rows, err := conn.Query(ctx, "SELECT DISTINCT policy_name FROM system.storage_policies ORDER BY 1"); err == nil {
 		for rows.Next() {
