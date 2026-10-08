@@ -50,9 +50,14 @@ w('common.xml', f"""
   <background_schedule_pool_log remove="1"/>
 </clickhouse>
 """)
+# cache_on_write_operations on the disk caches only when the query-level setting
+# enable_filesystem_cache_on_write_operations (default 0) is on too. The default
+# profile also applies to background merges, so set it there for the cow tier.
+cow_profile = ('  <profiles><default><enable_filesystem_cache_on_write_operations>1'
+               '</enable_filesystem_cache_on_write_operations></default></profiles>\n') if a.cache_on_write else ''
 w('users.xml', """
 <clickhouse>
-  <users>
+""" + cow_profile + """  <users>
     <default>
       <password></password>
       <networks><ip>::/0</ip></networks>
