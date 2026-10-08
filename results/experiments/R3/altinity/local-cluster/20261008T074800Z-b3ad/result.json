@@ -1,0 +1,44 @@
+{
+  "id": "R3",
+  "question": "What happens when Keeper loses quorum?",
+  "target": "altinity/local-cluster",
+  "version": "26.3.33.10001.altinitystable",
+  "started_at": "2026-10-08T07:47:37.612029916Z",
+  "steps": [
+    {
+      "name": "insert, 3/3 Keepers up",
+      "outcome": "ok",
+      "ms": 12.334
+    },
+    {
+      "name": "insert, 2/3 Keepers up (one lost)",
+      "outcome": "ok",
+      "ms": 10.515
+    },
+    {
+      "name": "insert, 1/3 Keepers up (quorum lost)",
+      "outcome": "error:242",
+      "detail": "code: 242, message: Table is in readonly mode: replica_path=/clickhouse/tables/1/ch_eval_exp/kq/replicas/ch-s1r1",
+      "ms": 309.301
+    },
+    {
+      "name": "SELECT during quorum loss",
+      "outcome": "value:2",
+      "ms": 4.832
+    },
+    {
+      "name": "system.replicas.is_readonly during quorum loss",
+      "outcome": "value:1",
+      "ms": 0.003
+    },
+    {
+      "name": "time from Keeper restart until inserts succeed",
+      "outcome": "value:8618ms",
+      "ms": 8617.552
+    }
+  ],
+  "findings": [
+    "Losing one of three Keepers: insert ok.",
+    "Losing quorum: insert error:242 after 309 ms; SELECT value:2; tables went read-only (is_readonly=1). Inserts recovered 8618ms after the Keepers restarted."
+  ]
+}

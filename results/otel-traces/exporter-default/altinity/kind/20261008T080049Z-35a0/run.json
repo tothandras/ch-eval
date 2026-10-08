@@ -1,0 +1,459 @@
+{
+  "scenario": "exporter-default",
+  "harness_commit": "3701df2",
+  "sweep_id": "20261008T080017Z",
+  "started_at": "2026-10-08T08:00:49.74692388Z",
+  "finished_at": "2026-10-08T08:01:16.373416872Z",
+  "cluster": {
+    "version": "26.3.33.10001.altinitystable",
+    "is_single_node": false,
+    "clusters": [
+      "all-clusters",
+      "all-replicated",
+      "all-sharded",
+      "ch-eval",
+      "default"
+    ]
+  },
+  "concurrency": [
+    1
+  ],
+  "repeat": 1,
+  "ingest": {
+    "source": "otel-direct",
+    "rows": 500018,
+    "duration_seconds": 20.575632442,
+    "events_per_second": 24301.464434178873,
+    "batch_size": 10000
+  },
+  "queries": [
+    {
+      "name": "error_rate_24h",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.02,
+      "p10_sec": 0.02,
+      "p20_sec": 0.02,
+      "p30_sec": 0.026,
+      "p40_sec": 0.026,
+      "p50_sec": 0.026,
+      "p60_sec": 0.026,
+      "p70_sec": 0.026,
+      "p80_sec": 0.039,
+      "p90_sec": 0.039,
+      "p95_sec": 0.039,
+      "p99_sec": 0.039,
+      "p99_9_sec": 0.039,
+      "p99_99_sec": 0.039,
+      "qps": 12.011,
+      "rps": 1989001.792,
+      "mib_per_sec": 20.896,
+      "result_rps": 324.298,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 21877,
+      "cpu_p95_us": 22262.199999999997,
+      "mem_avg_bytes": 70454.66666666667,
+      "cpu_source": "os_cpu_cluster",
+      "cache_state": "warm"
+    },
+    {
+      "name": "latency_by_service_1h",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.022,
+      "p10_sec": 0.022,
+      "p20_sec": 0.022,
+      "p30_sec": 0.023,
+      "p40_sec": 0.023,
+      "p50_sec": 0.023,
+      "p60_sec": 0.023,
+      "p70_sec": 0.023,
+      "p80_sec": 0.025,
+      "p90_sec": 0.025,
+      "p95_sec": 0.025,
+      "p99_sec": 0.025,
+      "p99_9_sec": 0.025,
+      "p99_99_sec": 0.025,
+      "qps": 14.971,
+      "rps": 2479155.294,
+      "mib_per_sec": 42.593,
+      "result_rps": 4640.987,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 25478,
+      "cpu_p95_us": 26252.9,
+      "mem_avg_bytes": 202985.33333333334,
+      "cpu_source": "os_cpu_cluster",
+      "cache_state": "warm"
+    },
+    {
+      "name": "route_status_24h",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.03,
+      "p10_sec": 0.03,
+      "p20_sec": 0.03,
+      "p30_sec": 0.03,
+      "p40_sec": 0.03,
+      "p50_sec": 0.03,
+      "p60_sec": 0.03,
+      "p70_sec": 0.03,
+      "p80_sec": 0.044,
+      "p90_sec": 0.044,
+      "p95_sec": 0.044,
+      "p99_sec": 0.044,
+      "p99_9_sec": 0.044,
+      "p99_99_sec": 0.044,
+      "qps": 11.413,
+      "rps": 362936.674,
+      "mib_per_sec": 10.404,
+      "result_rps": 45.654,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 45658,
+      "cpu_p95_us": 49598.2,
+      "mem_avg_bytes": 4302184.666666667,
+      "cpu_source": "os_cpu_cluster",
+      "cache_state": "warm"
+    },
+    {
+      "name": "service_dependencies_1h",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.055,
+      "p10_sec": 0.055,
+      "p20_sec": 0.055,
+      "p30_sec": 0.058,
+      "p40_sec": 0.058,
+      "p50_sec": 0.058,
+      "p60_sec": 0.058,
+      "p70_sec": 0.058,
+      "p80_sec": 0.059,
+      "p90_sec": 0.059,
+      "p95_sec": 0.059,
+      "p99_sec": 0.059,
+      "p99_9_sec": 0.059,
+      "p99_99_sec": 0.059,
+      "qps": 9.711,
+      "rps": 3216184.408,
+      "mib_per_sec": 192.02,
+      "result_rps": 1242.985,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 78976,
+      "cpu_p95_us": 83230.3,
+      "mem_avg_bytes": 3340176,
+      "cpu_source": "os_cpu_cluster",
+      "cache_state": "warm"
+    },
+    {
+      "name": "slowest_traces_1h",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.021,
+      "p10_sec": 0.021,
+      "p20_sec": 0.021,
+      "p30_sec": 0.023,
+      "p40_sec": 0.023,
+      "p50_sec": 0.023,
+      "p60_sec": 0.023,
+      "p70_sec": 0.023,
+      "p80_sec": 0.03,
+      "p90_sec": 0.03,
+      "p95_sec": 0.03,
+      "p99_sec": 0.03,
+      "p99_9_sec": 0.03,
+      "p99_99_sec": 0.03,
+      "qps": 13.466,
+      "rps": 1269452.339,
+      "mib_per_sec": 53.454,
+      "result_rps": 269.311,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 30230,
+      "cpu_p95_us": 35501.299999999996,
+      "mem_avg_bytes": 277958.3333333333,
+      "cpu_source": "os_cpu_cluster",
+      "cache_state": "warm"
+    },
+    {
+      "name": "spans_by_hour",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.026,
+      "p10_sec": 0.026,
+      "p20_sec": 0.026,
+      "p30_sec": 0.044,
+      "p40_sec": 0.044,
+      "p50_sec": 0.044,
+      "p60_sec": 0.044,
+      "p70_sec": 0.044,
+      "p80_sec": 0.066,
+      "p90_sec": 0.066,
+      "p95_sec": 0.066,
+      "p99_sec": 0.066,
+      "p99_9_sec": 0.066,
+      "p99_99_sec": 0.066,
+      "qps": 11.475,
+      "rps": 5737735.465,
+      "mib_per_sec": 54.791,
+      "result_rps": 22307.512,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 60484,
+      "cpu_p95_us": 61899.7,
+      "mem_avg_bytes": 19083721.333333332,
+      "cpu_source": "os_cpu_cluster",
+      "cache_state": "warm"
+    },
+    {
+      "name": "top_operations_24h",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.014,
+      "p10_sec": 0.014,
+      "p20_sec": 0.014,
+      "p30_sec": 0.014,
+      "p40_sec": 0.014,
+      "p50_sec": 0.014,
+      "p60_sec": 0.014,
+      "p70_sec": 0.014,
+      "p80_sec": 0.024,
+      "p90_sec": 0.024,
+      "p95_sec": 0.024,
+      "p99_sec": 0.024,
+      "p99_9_sec": 0.024,
+      "p99_99_sec": 0.024,
+      "qps": 14.629,
+      "rps": 824711.09,
+      "mib_per_sec": 15.788,
+      "result_rps": 146.29,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 17753,
+      "cpu_p95_us": 19579.100000000002,
+      "mem_avg_bytes": 94800,
+      "cpu_source": "os_cpu_cluster",
+      "cache_state": "warm"
+    },
+    {
+      "name": "trace_by_id",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.017,
+      "p10_sec": 0.017,
+      "p20_sec": 0.017,
+      "p30_sec": 0.019,
+      "p40_sec": 0.019,
+      "p50_sec": 0.019,
+      "p60_sec": 0.019,
+      "p70_sec": 0.019,
+      "p80_sec": 0.02,
+      "p90_sec": 0.02,
+      "p95_sec": 0.02,
+      "p99_sec": 0.02,
+      "p99_9_sec": 0.02,
+      "p99_99_sec": 0.02,
+      "qps": 15.132,
+      "rps": 371888.511,
+      "mib_per_sec": 26.323,
+      "result_rps": 105.925,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 18700,
+      "cpu_p95_us": 19851.1,
+      "mem_avg_bytes": 47144,
+      "cpu_source": "os_cpu_cluster",
+      "cache_state": "warm"
+    },
+    {
+      "name": "trace_by_id_lookup",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.028,
+      "p10_sec": 0.028,
+      "p20_sec": 0.028,
+      "p30_sec": 0.037,
+      "p40_sec": 0.037,
+      "p50_sec": 0.037,
+      "p60_sec": 0.037,
+      "p70_sec": 0.037,
+      "p80_sec": 0.202,
+      "p90_sec": 0.202,
+      "p95_sec": 0.202,
+      "p99_sec": 0.202,
+      "p99_9_sec": 0.202,
+      "p99_99_sec": 0.202,
+      "qps": 7.479,
+      "rps": 300713.782,
+      "mib_per_sec": 17.358,
+      "result_rps": 52.353,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 33979,
+      "cpu_p95_us": 101897.5,
+      "mem_avg_bytes": 216684,
+      "cpu_source": "os_cpu_cluster",
+      "cache_state": "warm"
+    },
+    {
+      "name": "user_activity",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.017,
+      "p10_sec": 0.017,
+      "p20_sec": 0.017,
+      "p30_sec": 0.03,
+      "p40_sec": 0.03,
+      "p50_sec": 0.03,
+      "p60_sec": 0.03,
+      "p70_sec": 0.03,
+      "p80_sec": 0.031,
+      "p90_sec": 0.031,
+      "p95_sec": 0.031,
+      "p99_sec": 0.031,
+      "p99_9_sec": 0.031,
+      "p99_99_sec": 0.031,
+      "qps": 14.245,
+      "rps": 350093.195,
+      "mib_per_sec": 11.676,
+      "result_rps": 14.245,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 25114,
+      "cpu_p95_us": 25546,
+      "mem_avg_bytes": 80413.33333333333,
+      "cpu_source": "os_cpu_cluster",
+      "cache_state": "warm"
+    }
+  ],
+  "value_parity": {
+    "from": "2026-05-29 00:00:00",
+    "to": "2026-06-01 00:00:00",
+    "time_end": "2026-06-01T00:00:00Z",
+    "digests": {
+      "error_rate_24h": {
+        "hash": "bcae299bd9f7c0ee88ac7fa79803d0d9e3e386579a2aa8217fbfac7d73f05fa4",
+        "rows": 27
+      },
+      "latency_by_service_1h": {
+        "hash": "8ec0f15d8f227961383a0258e07db8dd344d68d4edbcdc8a9cb4a00a2a55fbc0",
+        "rows": 310
+      },
+      "parity/otel_traces_rows": {
+        "hash": "32baea7186a5aee68b0318b53d600771981b1f8bdc7b1de49512c5f652cbd2de",
+        "rows": 1
+      },
+      "parity/trace_id_ts": {
+        "hash": "e873c7b0cbb5da218b5dc229f03c491daecaf85f0a9fe5d25a9ce35c240a0acf",
+        "rows": 1
+      },
+      "route_status_24h": {
+        "hash": "e1216e5d053c4b038e2162d40183867cb985395c4f5c789ec6f326d372746f31",
+        "rows": 4
+      },
+      "service_dependencies_1h": {
+        "hash": "46dd7cee47e88eefda912dc16ecadc6a6a11ee9bf67aa59cb9796f45cab7b41a",
+        "rows": 128
+      },
+      "slowest_traces_1h": {
+        "hash": "90df990edbb94865b490e5850b4014a007e65d84b8d2ec61c2060e04d0bf76b9",
+        "rows": 20
+      },
+      "spans_by_hour": {
+        "hash": "4afc1d4617f4756645ee80025f8511d9b0ab48197b9dbbbd9fb09df109d668be",
+        "rows": 1944
+      },
+      "top_operations_24h": {
+        "hash": "8ce45ecf0e84e7b7ef05283c886f4f39f026be46b351fb7891170dfe0a282114",
+        "rows": 10
+      },
+      "trace_by_id": {
+        "hash": "6feb865706471288d4f5e255aa38c57080cb66e4d7c752f9c8c3064eec8cea68",
+        "rows": 7
+      },
+      "trace_by_id_lookup": {
+        "hash": "6feb865706471288d4f5e255aa38c57080cb66e4d7c752f9c8c3064eec8cea68",
+        "rows": 7
+      },
+      "user_activity": {
+        "hash": "d51afb3693e8a24e3a96918483af0de805ccd02aff31579929615bc5faf3f3c6",
+        "rows": 1
+      }
+    }
+  },
+  "run_id": "20261008T080049Z-35a0",
+  "workload": "otel-traces",
+  "target": {
+    "name": "altinity/kind",
+    "platform": "altinity",
+    "tier": "kind",
+    "dialect": "replicated",
+    "shards": 1,
+    "replicas": 2,
+    "storage": "local",
+    "version": "26.3.33.10001.altinitystable"
+  },
+  "seed": {
+    "generator": "otel-traces",
+    "rows": 500018,
+    "rng_seed": 42,
+    "namespaces": 1,
+    "time_end": "2026-06-01T00:00:00Z",
+    "table": "otel_traces_exporter_default.otel_traces",
+    "settings": {
+      "async_insert": 0
+    },
+    "ingest_path": "direct",
+    "table_rows": {
+      "otel_traces": 500018
+    },
+    "notes": [
+      "25575 traces"
+    ]
+  },
+  "migrations": [
+    {
+      "version": 20261008000000,
+      "name": "create_otel_traces",
+      "direction": "down",
+      "status": "down",
+      "checksum": "b7caa042a26804e8e55a2fe7e46e8200d84e8e4a512a86a4d5a7fec246a1c6a3",
+      "duration_ms": 546,
+      "statements": [
+        {
+          "sql": "DROP TABLE IF EXISTS otel_traces_exporter_default.otel_traces_trace_id_ts_mv ON CLUSTER 'ch-eval' SYNC",
+          "wall_ms": 71.455,
+          "mutation_wait_ms": 14.781
+        },
+        {
+          "sql": "DROP TABLE IF EXISTS otel_traces_exporter_default.otel_traces_trace_id_ts ON CLUSTER 'ch-eval' SYNC",
+          "wall_ms": 115.51,
+          "mutation_wait_ms": 12.651
+        },
+        {
+          "sql": "DROP TABLE IF EXISTS otel_traces_exporter_default.otel_traces ON CLUSTER 'ch-eval' SYNC",
+          "wall_ms": 315.716,
+          "mutation_wait_ms": 16.667
+        }
+      ]
+    },
+    {
+      "version": 20261008000000,
+      "name": "create_otel_traces",
+      "direction": "up",
+      "status": "applied",
+      "checksum": "1ea76e19f485400d8a5f7c3091ec146bf2b76536d17cda0f8e06f600f149b461",
+      "duration_ms": 406,
+      "statements": [
+        {
+          "sql": "CREATE TABLE IF NOT EXISTS otel_traces_exporter_default.otel_traces ON CLUSTER 'ch-eval' (\n    Timestamp DateTime64(9) CODEC(Delta, ZSTD(1)),\n    TraceId String CODEC(ZSTD(1)),\n    SpanId String CODEC(ZSTD(1)),\n    ParentSpanId String CODEC(ZSTD(1)),\n    TraceState String CODEC(ZSTD(1)),\n    SpanName LowCardinality(String) CODEC(ZSTD(1)),\n    SpanKind LowCardinality(String) CODEC(ZSTD(1)),\n    ServiceName LowCardinality(String) CODEC(ZSTD(1)),\n    ResourceAttributes Map(LowCardinality(String), String) CODEC(ZSTD(1)),\n    ScopeName String CODEC(ZSTD(1)),\n    ScopeVersion String CODEC(ZSTD(1)),\n    SpanAttributes Map(LowCardinality(String), String) CODEC(ZSTD(1)),\n    Duration UInt64 CODEC(ZSTD(1)),\n    StatusCode LowCardinality(String) CODEC(ZSTD(1)),\n    StatusMessage String CODEC(ZSTD(1)),\n    Events Nested (\n        Timestamp DateTime64(9),\n        Name LowCardinality(String),\n        Attributes Map(LowCardinality(String), String)\n    ) CODEC(ZSTD(1)),\n    Links Nested (\n        TraceId String,\n        SpanId String,\n        TraceState String,\n        Attributes Map(LowCardinality(String), String)\n    ) CODEC(ZSTD(1)),\n    INDEX idx_trace_id TraceId TYPE bloom_filter(0.001) GRANULARITY 1,\n    INDEX idx_res_attr_key mapKeys(ResourceAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_res_attr_value mapValues(ResourceAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_span_attr_key mapKeys(SpanAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_span_attr_value mapValues(SpanAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,\n    INDEX idx_duration Duration TYPE minmax GRANULARITY 1\n) ENGINE = ReplicatedMergeTree('/clickhouse/tables/{shard}/{database}/{table}', '{replica}')\nPARTITION BY toDate(Timestamp)\nORDER BY (ServiceName, SpanName, toDateTime(Timestamp))\nSETTINGS index_granularity=8192, ttl_only_drop_parts = 1",
+          "wall_ms": 171.408,
+          "mutation_wait_ms": 19.003
+        },
+        {
+          "sql": "CREATE TABLE IF NOT EXISTS otel_traces_exporter_default.otel_traces_trace_id_ts ON CLUSTER 'ch-eval' (\n    TraceId String CODEC(ZSTD(1)),\n    Start DateTime CODEC(Delta, ZSTD(1)),\n    End DateTime CODEC(Delta, ZSTD(1)),\n    INDEX idx_trace_id TraceId TYPE bloom_filter(0.01) GRANULARITY 1\n) ENGINE = ReplicatedMergeTree('/clickhouse/tables/{shard}/{database}/{table}', '{replica}')\n    PARTITION BY toDate(Start)\n    ORDER BY (TraceId, Start)\n    SETTINGS index_granularity=8192, ttl_only_drop_parts = 1",
+          "wall_ms": 118.206,
+          "mutation_wait_ms": 13.031
+        },
+        {
+          "sql": "CREATE MATERIALIZED VIEW IF NOT EXISTS otel_traces_exporter_default.otel_traces_trace_id_ts_mv ON CLUSTER 'ch-eval'\nTO otel_traces_exporter_default.otel_traces_trace_id_ts\nAS SELECT\n              TraceId,\n              min(Timestamp) as Start,\n              max(Timestamp) as End\n   FROM otel_traces_exporter_default.otel_traces\n   WHERE TraceId != ''\n   GROUP BY TraceId",
+          "wall_ms": 69.392,
+          "mutation_wait_ms": 15.091
+        }
+      ]
+    }
+  ],
+  "smoke_only": true
+}

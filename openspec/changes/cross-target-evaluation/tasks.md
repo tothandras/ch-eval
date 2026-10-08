@@ -13,21 +13,21 @@
 ## 2. Phase 2: local targets, migrations, generators, parity green
 
 - [x] 2.1 `targets/compose`: `local-single` and `local-cluster` (2 replicas + 3 Keeper + S3 emulator) for `altinity` and `upstream-oss`; one `up`/`down` each
-- [ ] 2.2 `targets/kind`: Altinity operator 0.27.4 + CHK (3) + CHI (1×2) for both images; sandbox patches behind cgroup-v1 detection; images loaded with `kind load`
+- [ ] 2.2 `targets/kind`: Altinity operator 0.27.4 + CHK (3) + CHI (1×2) for both images; sandbox patches behind cgroup-v1 detection; images loaded into the node — altinity on kind done (operator bundle pinned by sha256; images imported with `ctr` because `kind load` fails on single-platform pulls; bundle pull policy set to IfNotPresent locally; CHI cluster names cannot contain `_`); upstream-oss on kind pending
 - [x] 2.3 Target manifests plus `bench/target`: DSN resolution, live metadata capture, drift check (fails the run unless `--allow-drift`)
 - [x] 2.4 Results layout `results/<workload>/<scenario>/<target>/<run-id>/`; `--target`; workload-nested discovery (OpenMeter queries byte-identical)
 - [x] 2.5 `bench migrate` (render/up/down/status/verify/force), `schema_migrations_ch`, lint, cost capture (`--measure`); port the OpenMeter inits to templated migrations
-- [ ] 2.6 Migration tests (up→down→up→up) on single, replicated (compose cluster and kind) for both builds — compose done for both builds (`TestMigrationLifecycle`, `CH_EVAL_IT_TARGETS`); kind pending
+- [x] 2.6 Migration tests (up→down→up→up) on single, replicated (compose cluster and kind) for both builds — compose for both builds; kind for altinity (upstream on kind with 2.2)
 - [ ] 2.7 Probe runner plus `docs/feature-matrix.yaml` plus the generator for `feature-matrix.md`; implement the locally runnable probes — runner (`bench probe`), YAML (85 rows), generator (`bench feature-matrix`) and 49 probes (44 SQL + 5 Go) done; all pass on altinity single and 1×2; upstream-oss and kind runs pending
 - [x] 2.8 OTel generators (traces, metrics, logs), deterministic with unit tests; direct-insert mappers for all variants (exporter-default and clickstack, ported by `migrations/tools/port_otel_ddl.py`)
 - [x] 2.9 Collector ingest path (compose service, `create_schema: false`) plus the path-parity test — `targets/collector`, `--ingest-path collector`, `bench compare --runs`; full-table fingerprints identical for all six OTel scenarios
 - [ ] 2.10 Cross-target `bench compare` with parity gate; local parity green for every workload and scenario on altinity vs upstream-oss — compare and gate done; OpenMeter parity green (34/34, 30/30) on single, 1×2, 1×2 s3 and 2×2 for both builds; OTel pending
 - [x] 2.11 CI workflow: lint, unit tests, `openspec validate`, migration tests, smoke run on altinity and upstream-oss (`.github/workflows/ci.yml`; gofmt cleanup landed as its own no-behaviour commit; the workflow has not run on GitHub yet)
-- [ ] 2.12 `replica-consistency` experiment implemented and smoke-tested on local-cluster and kind (no conclusions)
+- [x] 2.12 `replica-consistency` experiment implemented and smoke-tested on local-cluster and kind (no conclusions) — `bench consistency`; altinity and upstream 1×2 (compose), altinity kind; restart variant on compose
 - [ ] 2.13 Sharded topologies: compose `local-cluster` 2x2 profile and kind CHI 2x2; `shardedTable` migration helper; digest parity 2x2 vs 1x2 for openmeter — compose 2×2, the `distributed` helper and 2×2 parity (1 and 8 namespaces) done; kind 2×2 pending
 - [x] 2.14 Opt-in Zipf namespace distribution in the generator (appended draw; default stream byte-identical, proven by test) — `--namespace-skew`
-- [ ] 2.15 Local correctness experiments: S3 (unavailable shard: default vs `skip_unavailable_shards`), S4 (Distributed insert modes, time-to-queryable), R3 (Keeper quorum loss on kind), R6 (ON CLUSTER with a replica down), E5/E6 (operator vertical change, add replica) at small scale
-- [ ] 2.16 Self-managed `s3` storage mode locally (S3 emulator + filesystem cache); cache-size cap knob for C2; locality metadata capture — `local-cluster-s3` runs with parity green; cap knob and locality capture pending
+- [ ] 2.15 Local correctness experiments: S3 (unavailable shard: default vs `skip_unavailable_shards`), S4 (Distributed insert modes, time-to-queryable), R3 (Keeper quorum loss on kind), R6 (ON CLUSTER with a replica down), E5/E6 (operator vertical change, add replica) at small scale — S3/S4 (altinity 2×2), R3/R6 (both builds, compose 1×2; R3 on compose because compose also runs 3 Keepers) done; E5/E6 script ready (`experiments/kind/e5-e6.sh`), run pending
+- [ ] 2.16 Self-managed `s3` storage mode locally (S3 emulator + filesystem cache); cache-size cap knob for C2; locality metadata capture — `local-cluster-s3` parity green; `s3_cache.max_size`/`on_write` knobs with `local-cluster-s3-cow` and `local-cluster-s3-smallcache` tiers; disks, object-storage type and cache occupancy in `metadata.json`; variant runs pending
 
 ## 3. Phase 3: OpenMeter cross-target perf (paid; STOP before creating resources)
 

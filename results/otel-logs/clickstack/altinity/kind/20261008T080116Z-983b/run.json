@@ -1,0 +1,456 @@
+{
+  "scenario": "clickstack",
+  "harness_commit": "3701df2",
+  "sweep_id": "20261008T080116Z",
+  "started_at": "2026-10-08T08:01:16.574838229Z",
+  "finished_at": "2026-10-08T08:01:50.167788476Z",
+  "cluster": {
+    "version": "26.3.33.10001.altinitystable",
+    "is_single_node": false,
+    "clusters": [
+      "all-clusters",
+      "all-replicated",
+      "all-sharded",
+      "ch-eval",
+      "default"
+    ]
+  },
+  "concurrency": [
+    1
+  ],
+  "repeat": 1,
+  "ingest": {
+    "source": "otel-direct",
+    "rows": 500000,
+    "duration_seconds": 27.596198458,
+    "events_per_second": 18118.437608751596,
+    "batch_size": 10000
+  },
+  "queries": [
+    {
+      "name": "body_contains_24h",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.027,
+      "p10_sec": 0.027,
+      "p20_sec": 0.027,
+      "p30_sec": 0.032,
+      "p40_sec": 0.032,
+      "p50_sec": 0.032,
+      "p60_sec": 0.032,
+      "p70_sec": 0.032,
+      "p80_sec": 0.035,
+      "p90_sec": 0.035,
+      "p95_sec": 0.035,
+      "p99_sec": 0.035,
+      "p99_9_sec": 0.035,
+      "p99_99_sec": 0.035,
+      "qps": 12.08,
+      "rps": 2012666.517,
+      "mib_per_sec": 103.841,
+      "result_rps": 12.08,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 42053,
+      "cpu_p95_us": 46412.6,
+      "mem_avg_bytes": 12707320,
+      "cpu_source": "os_cpu_cluster",
+      "cache_state": "warm"
+    },
+    {
+      "name": "logs_for_trace",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.016,
+      "p10_sec": 0.016,
+      "p20_sec": 0.016,
+      "p30_sec": 0.024,
+      "p40_sec": 0.024,
+      "p50_sec": 0.024,
+      "p60_sec": 0.024,
+      "p70_sec": 0.024,
+      "p80_sec": 0.024,
+      "p90_sec": 0.024,
+      "p95_sec": 0.024,
+      "p99_sec": 0.024,
+      "p99_9_sec": 0.024,
+      "p99_99_sec": 0.024,
+      "qps": 14.68,
+      "rps": 240524.408,
+      "mib_per_sec": 14.479,
+      "result_rps": 58.722,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 16609,
+      "cpu_p95_us": 18124.6,
+      "mem_avg_bytes": 87701,
+      "cpu_source": "os_cpu_cluster",
+      "cache_state": "warm"
+    },
+    {
+      "name": "needle_search",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.008,
+      "p10_sec": 0.008,
+      "p20_sec": 0.008,
+      "p30_sec": 0.009,
+      "p40_sec": 0.009,
+      "p50_sec": 0.009,
+      "p60_sec": 0.009,
+      "p70_sec": 0.009,
+      "p80_sec": 0.011,
+      "p90_sec": 0.011,
+      "p95_sec": 0.011,
+      "p99_sec": 0.011,
+      "p99_9_sec": 0.011,
+      "p99_99_sec": 0.011,
+      "qps": 18.724,
+      "rps": 306772.252,
+      "mib_per_sec": 9.264,
+      "result_rps": 18.724,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 8452,
+      "cpu_p95_us": 9142.3,
+      "mem_avg_bytes": 37512,
+      "cpu_source": "os_cpu_cluster",
+      "cache_state": "warm"
+    },
+    {
+      "name": "rollup_services_24h",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.009,
+      "p10_sec": 0.009,
+      "p20_sec": 0.009,
+      "p30_sec": 0.01,
+      "p40_sec": 0.01,
+      "p50_sec": 0.01,
+      "p60_sec": 0.01,
+      "p70_sec": 0.01,
+      "p80_sec": 0.014,
+      "p90_sec": 0.014,
+      "p95_sec": 0.014,
+      "p99_sec": 0.014,
+      "p99_9_sec": 0.014,
+      "p99_99_sec": 0.014,
+      "qps": 16.942,
+      "rps": 822070.034,
+      "mib_per_sec": 21.901,
+      "result_rps": 338.837,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 11172,
+      "cpu_p95_us": 16484.7,
+      "mem_avg_bytes": 76781.33333333333,
+      "cpu_source": "os_cpu_cluster",
+      "cache_state": "warm"
+    },
+    {
+      "name": "service_tail_1h",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.017,
+      "p10_sec": 0.017,
+      "p20_sec": 0.017,
+      "p30_sec": 0.023,
+      "p40_sec": 0.023,
+      "p50_sec": 0.023,
+      "p60_sec": 0.023,
+      "p70_sec": 0.023,
+      "p80_sec": 0.027,
+      "p90_sec": 0.027,
+      "p95_sec": 0.027,
+      "p99_sec": 0.027,
+      "p99_9_sec": 0.027,
+      "p99_99_sec": 0.027,
+      "qps": 15.313,
+      "rps": 837617.894,
+      "mib_per_sec": 32.157,
+      "result_rps": 1531.294,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 20736,
+      "cpu_p95_us": 21643.2,
+      "mem_avg_bytes": 127311.66666666667,
+      "cpu_source": "os_cpu_cluster",
+      "cache_state": "warm"
+    },
+    {
+      "name": "severity_by_service_24h",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.017,
+      "p10_sec": 0.017,
+      "p20_sec": 0.017,
+      "p30_sec": 0.024,
+      "p40_sec": 0.024,
+      "p50_sec": 0.024,
+      "p60_sec": 0.024,
+      "p70_sec": 0.024,
+      "p80_sec": 0.024,
+      "p90_sec": 0.024,
+      "p95_sec": 0.024,
+      "p99_sec": 0.024,
+      "p99_9_sec": 0.024,
+      "p99_99_sec": 0.024,
+      "qps": 13.978,
+      "rps": 2328918.002,
+      "mib_per_sec": 22.24,
+      "result_rps": 2516.027,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 29413,
+      "cpu_p95_us": 35371.9,
+      "mem_avg_bytes": 9606051.666666666,
+      "cpu_source": "os_cpu_cluster",
+      "cache_state": "warm"
+    },
+    {
+      "name": "top_error_patterns_24h",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.026,
+      "p10_sec": 0.026,
+      "p20_sec": 0.026,
+      "p30_sec": 0.032,
+      "p40_sec": 0.032,
+      "p50_sec": 0.032,
+      "p60_sec": 0.032,
+      "p70_sec": 0.032,
+      "p80_sec": 0.033,
+      "p90_sec": 0.033,
+      "p95_sec": 0.033,
+      "p99_sec": 0.033,
+      "p99_9_sec": 0.033,
+      "p99_99_sec": 0.033,
+      "qps": 12.473,
+      "rps": 2078163.705,
+      "mib_per_sec": 105.763,
+      "result_rps": 124.729,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 39864,
+      "cpu_p95_us": 43394.7,
+      "mem_avg_bytes": 149858.66666666666,
+      "cpu_source": "os_cpu_cluster",
+      "cache_state": "warm"
+    },
+    {
+      "name": "user_logs",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.013,
+      "p10_sec": 0.013,
+      "p20_sec": 0.013,
+      "p30_sec": 0.014,
+      "p40_sec": 0.014,
+      "p50_sec": 0.014,
+      "p60_sec": 0.014,
+      "p70_sec": 0.014,
+      "p80_sec": 0.021,
+      "p90_sec": 0.021,
+      "p95_sec": 0.021,
+      "p99_sec": 0.021,
+      "p99_9_sec": 0.021,
+      "p99_99_sec": 0.021,
+      "qps": 16.403,
+      "rps": 806253.319,
+      "mib_per_sec": 6.315,
+      "result_rps": 49.21,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 18754,
+      "cpu_p95_us": 18797.2,
+      "mem_avg_bytes": 63000.666666666664,
+      "cpu_source": "os_cpu_cluster",
+      "cache_state": "warm"
+    },
+    {
+      "name": "user_logs_items",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.019,
+      "p10_sec": 0.019,
+      "p20_sec": 0.019,
+      "p30_sec": 0.022,
+      "p40_sec": 0.022,
+      "p50_sec": 0.022,
+      "p60_sec": 0.022,
+      "p70_sec": 0.022,
+      "p80_sec": 0.025,
+      "p90_sec": 0.025,
+      "p95_sec": 0.025,
+      "p99_sec": 0.025,
+      "p99_9_sec": 0.025,
+      "p99_99_sec": 0.025,
+      "qps": 14.553,
+      "rps": 357651.716,
+      "mib_per_sec": 15.594,
+      "result_rps": 43.659,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 21435,
+      "cpu_p95_us": 21990.300000000003,
+      "mem_avg_bytes": 69704.66666666667,
+      "cpu_source": "os_cpu_cluster",
+      "cache_state": "warm"
+    },
+    {
+      "name": "volume_by_hour",
+      "concurrency": 1,
+      "iterations": 3,
+      "p0_sec": 0.028,
+      "p10_sec": 0.028,
+      "p20_sec": 0.028,
+      "p30_sec": 0.028,
+      "p40_sec": 0.028,
+      "p50_sec": 0.028,
+      "p60_sec": 0.028,
+      "p70_sec": 0.028,
+      "p80_sec": 0.055,
+      "p90_sec": 0.055,
+      "p95_sec": 0.055,
+      "p99_sec": 0.055,
+      "p99_9_sec": 0.055,
+      "p99_99_sec": 0.055,
+      "qps": 12.566,
+      "rps": 6282786.249,
+      "mib_per_sec": 53.938,
+      "result_rps": 5428.327,
+      "result_mib_per_sec": 0,
+      "cpu_p50_us": 49495,
+      "cpu_p95_us": 56274.700000000004,
+      "mem_avg_bytes": 14925771.666666666,
+      "cpu_source": "os_cpu_cluster",
+      "cache_state": "warm"
+    }
+  ],
+  "value_parity": {
+    "from": "2026-05-29 00:00:00",
+    "to": "2026-06-01 00:00:00",
+    "time_end": "2026-06-01T00:00:00Z",
+    "digests": {
+      "body_contains_24h": {
+        "hash": "86863998e568f2b7b72d7202a9c67c1c69f3013e09c824feb6f137028bcddba8",
+        "rows": 1
+      },
+      "logs_for_trace": {
+        "hash": "338f82f9c8414c565ec60c7e1f96571936682b905cfa4157b204cf4f8c66b797",
+        "rows": 4
+      },
+      "needle_search": {
+        "hash": "14681047bb725b6601fd0dabf1c26518936dd61765f5242a831faccb6e3f8f02",
+        "rows": 1
+      },
+      "parity/kv_rollup": {
+        "hash": "1c2b9aad9d716128d0e8446ba42715de97448ca6e70ee68195cd5786cdf2e4ba",
+        "rows": 1
+      },
+      "parity/otel_logs_rows": {
+        "hash": "ed9a82f178a08e6d24d87bd451b1f4a71fdceb2d75d23a2a58bd848c1fe62d88",
+        "rows": 1
+      },
+      "rollup_services_24h": {
+        "hash": "05ef645124f633d549a15031aaddb2881ea87dae39dbc820132369789f2dd201",
+        "rows": 20
+      },
+      "service_tail_1h": {
+        "hash": "1b256507f670fad9e8a01d8b33cf9ce1e78ea4278e5a6858549e4987b26b52f4",
+        "rows": 100
+      },
+      "severity_by_service_24h": {
+        "hash": "4a8fdfab09666d8509b8d72198fe424147ccd699f8093a2692485d426c5095dc",
+        "rows": 180
+      },
+      "top_error_patterns_24h": {
+        "hash": "3946f84893ed611c6fd623612b7398efc971291a6a83c1386d68afd2e4540aa9",
+        "rows": 10
+      },
+      "user_logs": {
+        "hash": "d00bd89feea881773698c990eedd0fbe90695ddf755b049053c26fd183463b90",
+        "rows": 3
+      },
+      "user_logs_items": {
+        "hash": "d00bd89feea881773698c990eedd0fbe90695ddf755b049053c26fd183463b90",
+        "rows": 3
+      },
+      "volume_by_hour": {
+        "hash": "15adf32a26df3883af288d48d1f4ed2c25f2f146e7233ad44a232bb15259b1e1",
+        "rows": 432
+      }
+    }
+  },
+  "run_id": "20261008T080116Z-983b",
+  "workload": "otel-logs",
+  "target": {
+    "name": "altinity/kind",
+    "platform": "altinity",
+    "tier": "kind",
+    "dialect": "replicated",
+    "shards": 1,
+    "replicas": 2,
+    "storage": "local",
+    "version": "26.3.33.10001.altinitystable"
+  },
+  "seed": {
+    "generator": "otel-logs",
+    "rows": 500000,
+    "rng_seed": 42,
+    "namespaces": 1,
+    "time_end": "2026-06-01T00:00:00Z",
+    "table": "otel_logs_clickstack.otel_logs",
+    "settings": {
+      "async_insert": 0
+    },
+    "ingest_path": "direct",
+    "table_rows": {
+      "otel_logs": 500000
+    }
+  },
+  "migrations": [
+    {
+      "version": 20261008000000,
+      "name": "create_otel_logs",
+      "direction": "down",
+      "status": "down",
+      "checksum": "c02895a3cbbb2f92d4896ca778099719e4214f86ec2b6798c5a6385467cb5a6e",
+      "duration_ms": 767,
+      "statements": [
+        {
+          "sql": "DROP TABLE IF EXISTS otel_logs_clickstack.otel_logs_attr_kv_rollup_15m_mv ON CLUSTER 'ch-eval' SYNC",
+          "wall_ms": 68.329,
+          "mutation_wait_ms": 18.744
+        },
+        {
+          "sql": "DROP TABLE IF EXISTS otel_logs_clickstack.otel_logs_kv_rollup_15m ON CLUSTER 'ch-eval' SYNC",
+          "wall_ms": 123.139,
+          "mutation_wait_ms": 16.063
+        },
+        {
+          "sql": "DROP TABLE IF EXISTS otel_logs_clickstack.otel_logs ON CLUSTER 'ch-eval' SYNC",
+          "wall_ms": 524.637,
+          "mutation_wait_ms": 16.944
+        }
+      ]
+    },
+    {
+      "version": 20261008000000,
+      "name": "create_otel_logs",
+      "direction": "up",
+      "status": "applied",
+      "checksum": "3cf33b22bf758eed7ae14973d94f84096949b79b12008415f29397721d840ea2",
+      "duration_ms": 518,
+      "statements": [
+        {
+          "sql": "CREATE TABLE IF NOT EXISTS otel_logs_clickstack.otel_logs ON CLUSTER 'ch-eval'\n(\n  `Timestamp` DateTime64(9) CODEC(Delta(8), ZSTD(1)),\n  `TraceId` String CODEC(ZSTD(1)),\n  `SpanId` String CODEC(ZSTD(1)),\n  `TraceFlags` UInt8,\n  `SeverityText` LowCardinality(String) CODEC(ZSTD(1)),\n  `SeverityNumber` UInt8,\n  `ServiceName` LowCardinality(String) CODEC(ZSTD(1)),\n  `Body` String CODEC(ZSTD(1)),\n  `ResourceSchemaUrl` LowCardinality(String) CODEC(ZSTD(1)),\n  `ResourceAttributes` Map(LowCardinality(String), String) CODEC(ZSTD(1)),\n  `ScopeSchemaUrl` LowCardinality(String) CODEC(ZSTD(1)),\n  `ScopeName` String CODEC(ZSTD(1)),\n  `ScopeVersion` LowCardinality(String) CODEC(ZSTD(1)),\n  `ScopeAttributes` Map(LowCardinality(String), String) CODEC(ZSTD(1)),\n  `LogAttributes` Map(LowCardinality(String), String) CODEC(ZSTD(1)),\n  `EventName` String CODEC(ZSTD(1)),\n  `__hdx_materialized_k8s.cluster.name` LowCardinality(String) MATERIALIZED ResourceAttributes['k8s.cluster.name'] CODEC(ZSTD(1)),\n  `__hdx_materialized_k8s.container.name` LowCardinality(String) MATERIALIZED ResourceAttributes['k8s.container.name'] CODEC(ZSTD(1)),\n  `__hdx_materialized_k8s.deployment.name` LowCardinality(String) MATERIALIZED ResourceAttributes['k8s.deployment.name'] CODEC(ZSTD(1)),\n  `__hdx_materialized_k8s.namespace.name` LowCardinality(String) MATERIALIZED ResourceAttributes['k8s.namespace.name'] CODEC(ZSTD(1)),\n  `__hdx_materialized_k8s.node.name` LowCardinality(String) MATERIALIZED ResourceAttributes['k8s.node.name'] CODEC(ZSTD(1)),\n  `__hdx_materialized_k8s.pod.name` LowCardinality(String) MATERIALIZED ResourceAttributes['k8s.pod.name'] CODEC(ZSTD(1)),\n  `__hdx_materialized_k8s.pod.uid` LowCardinality(String) MATERIALIZED ResourceAttributes['k8s.pod.uid'] CODEC(ZSTD(1)),\n  `__hdx_materialized_deployment.environment.name` LowCardinality(String) MATERIALIZED ResourceAttributes['deployment.environment.name'] CODEC(ZSTD(1)),\n  `ResourceAttributeItems` Array(String) ALIAS arrayMap((arr) -\u003e concat(arr.1, '=', arr.2), ResourceAttributes::Array(Tuple(String, String))),\n  `ScopeAttributeItems` Array(String) ALIAS arrayMap((arr) -\u003e concat(arr.1, '=', arr.2), ScopeAttributes::Array(Tuple(String, String))),\n  `LogAttributeItems` Array(String) ALIAS arrayMap((arr) -\u003e concat(arr.1, '=', arr.2), LogAttributes::Array(Tuple(String, String))),\n  INDEX idx_trace_id TraceId TYPE text(tokenizer = 'array'),\n  INDEX idx_res_attr_key mapKeys(ResourceAttributes) TYPE text(tokenizer = 'array'),\n  INDEX idx_res_attr_items ResourceAttributeItems TYPE text(tokenizer = 'array'),\n  INDEX idx_scope_attr_key mapKeys(ScopeAttributes) TYPE text(tokenizer = 'array'),\n  INDEX idx_scope_attr_items ScopeAttributeItems TYPE text(tokenizer = 'array'),\n  INDEX idx_log_attr_key mapKeys(LogAttributes) TYPE text(tokenizer = 'array'),\n  INDEX idx_log_attr_items LogAttributeItems TYPE text(tokenizer = 'array'),\n  INDEX idx_lower_body lower(Body) TYPE text(tokenizer = 'splitByNonAlpha')\n)\nENGINE = ReplicatedMergeTree('/clickhouse/tables/{shard}/{database}/{table}', '{replica}')\nPARTITION BY toDate(Timestamp)\nORDER BY (toStartOfFiveMinutes(Timestamp), ServiceName, Timestamp)\nTTL toDateTime(Timestamp) + toIntervalDay(3650)\nSETTINGS index_granularity = 8192, ttl_only_drop_parts = 1, enable_block_number_column = 1, enable_block_offset_column = 1",
+          "wall_ms": 173.102,
+          "mutation_wait_ms": 14.358
+        },
+        {
+          "sql": "CREATE TABLE IF NOT EXISTS otel_logs_clickstack.otel_logs_kv_rollup_15m ON CLUSTER 'ch-eval'\n(\n    `Timestamp` DateTime,\n    `ColumnIdentifier` LowCardinality(String),\n    `Key` LowCardinality(String),\n    `Value` String,\n    `count` UInt64,\n    INDEX idx_count_minmax count TYPE minmax GRANULARITY 1,\n    INDEX idx_timestamp_minmax Timestamp TYPE minmax GRANULARITY 1\n)\nENGINE = ReplicatedSummingMergeTree('/clickhouse/tables/{shard}/{database}/{table}', '{replica}')\nPARTITION BY toDate(Timestamp)\nORDER BY (ColumnIdentifier, Key, Timestamp, Value)\nTTL Timestamp + toIntervalDay(3650)\nSETTINGS index_granularity = 8192, ttl_only_drop_parts = 1",
+          "wall_ms": 167.553,
+          "mutation_wait_ms": 21.794
+        },
+        {
+          "sql": "CREATE MATERIALIZED VIEW IF NOT EXISTS otel_logs_clickstack.otel_logs_attr_kv_rollup_15m_mv ON CLUSTER 'ch-eval' TO otel_logs_clickstack.otel_logs_kv_rollup_15m\nAS WITH elements AS (\n    SELECT\n        'NativeColumn' AS ColumnIdentifier,\n        toStartOfFifteenMinutes(Timestamp) AS Timestamp,\n        'SeverityText' as Key,\n        CAST(SeverityText AS String) as Value\n    FROM otel_logs_clickstack.otel_logs\n    UNION ALL\n    SELECT\n        'NativeColumn' AS ColumnIdentifier,\n        toStartOfFifteenMinutes(Timestamp) AS Timestamp,\n        'ServiceName' as Key,\n        CAST(ServiceName AS String) as Value\n    FROM otel_logs_clickstack.otel_logs\n    UNION ALL\n    SELECT\n        'NativeColumn' AS ColumnIdentifier,\n        toStartOfFifteenMinutes(Timestamp) AS Timestamp,\n        'ScopeName' as Key,\n        CAST(ScopeName AS String) as Value\n    FROM otel_logs_clickstack.otel_logs\n    UNION ALL\n    SELECT\n        'NativeColumn' AS ColumnIdentifier,\n        toStartOfFifteenMinutes(Timestamp) AS Timestamp,\n        'ScopeVersion' as Key,\n        CAST(ScopeVersion AS String) as Value\n    FROM otel_logs_clickstack.otel_logs\n    UNION ALL\n    SELECT\n        'NativeColumn' AS ColumnIdentifier,\n        toStartOfFifteenMinutes(Timestamp) AS Timestamp,\n        'ResourceSchemaUrl' as Key,\n        CAST(ResourceSchemaUrl AS String) as Value\n    FROM otel_logs_clickstack.otel_logs\n    UNION ALL\n    SELECT\n        'NativeColumn' AS ColumnIdentifier,\n        toStartOfFifteenMinutes(Timestamp) AS Timestamp,\n        'ScopeSchemaUrl' as Key,\n        CAST(ScopeSchemaUrl AS String) as Value\n    FROM otel_logs_clickstack.otel_logs\n    UNION ALL\n    SELECT\n        'NativeColumn' AS ColumnIdentifier,\n        toStartOfFifteenMinutes(Timestamp) AS Timestamp,\n        '__hdx_materialized_k8s.cluster.name' as Key,\n        CAST(`__hdx_materialized_k8s.cluster.name` AS String) as Value\n    FROM otel_logs_clickstack.otel_logs\n    UNION ALL\n    SELECT\n        'NativeColumn' AS ColumnIdentifier,\n        toStartOfFifteenMinutes(Timestamp) AS Timestamp,\n        '__hdx_materialized_k8s.container.name' as Key,\n        CAST(`__hdx_materialized_k8s.container.name` AS String) as Value\n    FROM otel_logs_clickstack.otel_logs\n    UNION ALL\n    SELECT\n        'NativeColumn' AS ColumnIdentifier,\n        toStartOfFifteenMinutes(Timestamp) AS Timestamp,\n        '__hdx_materialized_k8s.deployment.name' as Key,\n        CAST(`__hdx_materialized_k8s.deployment.name` AS String) as Value\n    FROM otel_logs_clickstack.otel_logs\n    UNION ALL\n    SELECT\n        'NativeColumn' AS ColumnIdentifier,\n        toStartOfFifteenMinutes(Timestamp) AS Timestamp,\n        '__hdx_materialized_k8s.namespace.name' as Key,\n        CAST(`__hdx_materialized_k8s.namespace.name` AS String) as Value\n    FROM otel_logs_clickstack.otel_logs\n    UNION ALL\n    SELECT\n        'NativeColumn' AS ColumnIdentifier,\n        toStartOfFifteenMinutes(Timestamp) AS Timestamp,\n        '__hdx_materialized_k8s.node.name' as Key,\n        CAST(`__hdx_materialized_k8s.node.name` AS String) as Value\n    FROM otel_logs_clickstack.otel_logs\n    UNION ALL\n    SELECT\n        'NativeColumn' AS ColumnIdentifier,\n        toStartOfFifteenMinutes(Timestamp) AS Timestamp,\n        '__hdx_materialized_k8s.pod.name' as Key,\n        CAST(`__hdx_materialized_k8s.pod.name` AS String) as Value\n    FROM otel_logs_clickstack.otel_logs\n    UNION ALL\n    SELECT\n        'NativeColumn' AS ColumnIdentifier,\n        toStartOfFifteenMinutes(Timestamp) AS Timestamp,\n        '__hdx_materialized_k8s.pod.uid' as Key,\n        CAST(`__hdx_materialized_k8s.pod.uid` AS String) as Value\n    FROM otel_logs_clickstack.otel_logs\n    UNION ALL\n    SELECT\n        'NativeColumn' AS ColumnIdentifier,\n        toStartOfFifteenMinutes(Timestamp) AS Timestamp,\n        '__hdx_materialized_deployment.environment.name' as Key,\n        CAST(`__hdx_materialized_deployment.environment.name` AS String) as Value\n    FROM otel_logs_clickstack.otel_logs\n)\nSELECT Timestamp, ColumnIdentifier, Key, Value, count() AS count FROM elements\nGROUP BY Timestamp, ColumnIdentifier, Key, Value",
+          "wall_ms": 88.068,
+          "mutation_wait_ms": 53.084
+        }
+      ]
+    }
+  ],
+  "smoke_only": true
+}

@@ -1,0 +1,45 @@
+{
+  "id": "R6",
+  "question": "How does DDL propagate when a replica is down (ON CLUSTER vs Replicated database)?",
+  "target": "altinity/local-cluster",
+  "version": "26.3.33.10001.altinitystable",
+  "started_at": "2026-10-08T07:47:08.033679971Z",
+  "steps": [
+    {
+      "name": "stop node ch-s1r2",
+      "outcome": "ok",
+      "ms": 5316.177
+    },
+    {
+      "name": "CREATE TABLE ... ON CLUSTER with distributed_ddl_task_timeout=10",
+      "outcome": "error:159",
+      "detail": "code: 159, message: Distributed DDL task /clickhouse/task_queue/ddl/query-0000000230 is not finished on 1 of 2 hosts (0 of them are currently executing the task, 0 are inactive). They are going to execute the query in background. Was waitin…",
+      "ms": 10586.803
+    },
+    {
+      "name": "CREATE TABLE in a Replicated database (no ON CLUSTER), distributed_ddl_task_timeout=10",
+      "outcome": "error:159",
+      "detail": "code: 159, message: ReplicatedDatabase DDL task /clickhouse/databases/ch_eval_exp_repl/log/query-0000000003 is not finished on 1 of 2 hosts (0 of them are currently executing the task, 0 are inactive). They are going to execute the query in…",
+      "ms": 10582.598
+    },
+    {
+      "name": "restart node",
+      "outcome": "value:1510ms",
+      "ms": 1768.955
+    },
+    {
+      "name": "time after restart until ch_eval_exp.ddl_t exists on the restarted node",
+      "outcome": "value:822ms",
+      "ms": 821.955
+    },
+    {
+      "name": "time after restart until ch_eval_exp_repl.ddl_t exists on the restarted node",
+      "outcome": "value:2ms",
+      "ms": 2.134
+    }
+  ],
+  "findings": [
+    "ON CLUSTER with a replica down returned error:159 after 10587 ms; see the steps for when the restarted replica executed the queued task.",
+    "In a Replicated database the same DDL returned error:159 after 10583 ms; see the steps for when the restarted replica replayed it from the database log."
+  ]
+}
