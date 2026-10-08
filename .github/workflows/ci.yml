@@ -1,0 +1,94 @@
+# CI: static checks on every push, and a local-tier smoke with the cross-target
+# parity gate on altinity vs upstream-oss. Local tiers prove correctness and
+# parity only; CI never produces performance numbers.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.2"
+      - name: gofmt
+        run: |
+          out=$(gofmt -l bench migrations generators)
+          if [ -n "$out" ]; then echo "gofmt needed:"; echo "$out"; exit 1; fi
+      - name: vet
+        run: go vet ./...
+      - name: unit tests
+        run: go test ./...
+      - name: openspec validate
+        run: |
+          npm install --no-save @fission-ai/openspec@1.4.0
+          OPENSPEC_TELEMETRY=0 ./node_modules/.bin/openspec validate cross-target-evaluation --strict
+      - name: OTel DDL port is reproducible
+        run: |
+          python3 migrations/tools/port_otel_ddl.py
+          git diff --exit-code -- scenarios/
+
+  smoke:
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.2"
+      - name: build
+        run: go build -o bin/bench ./bench/cmd/bench
+      - name: start local single-node targets
+        run: |
+          targets/altinity/up local-single
+          targets/upstream-oss/up local-single
+      - name: clickhouse-benchmark from the server image
+        run: |
+          mkdir -p "$HOME/ch"
+          docker cp cheval-upstream-oss-compose-single-ch-1:/usr/bin/clickhouse "$HOME/ch/clickhouse"
+          ln -s clickhouse "$HOME/ch/clickhouse-benchmark"
+          echo "$HOME/ch" >> "$GITHUB_PATH"
+      - name: migration lifecycle (up, no-op up, down+up, verify)
+        run: CH_EVAL_IT_TARGETS=altinity/local-single,upstream-oss/local-single go test ./bench/scenario/ -run TestMigrationLifecycle -count=1 -v
+      - name: probes
+        run: |
+          bin/bench probe --target altinity/local-single --results-dir /tmp/results
+          bin/bench probe --target upstream-oss/local-single --results-dir /tmp/results
+          ! grep -q '"pass": false' /tmp/results/probes/*/*/*/probes.json
+      - name: workloads and parity gate
+        run: |
+          for t in altinity/local-single upstream-oss/local-single; do
+            for w in openmeter otel-traces otel-logs otel-metrics; do
+              bin/bench --target "$t" --workload "$w" --rows 100000 --iterations 1 \
+                --time-end 2026-06-01T00:00:00Z --results-dir /tmp/results
+            done
+          done
+          for w in openmeter otel-traces otel-logs otel-metrics; do
+            for s in $(ls "scenarios/$w"); do
+              [ -d "scenarios/$w/$s/init" ] || continue
+              bin/bench compare --results-dir /tmp/results --workload "$w" --scenario "$s" \
+                --targets altinity/local-single,upstream-oss/local-single
+            done
+          done
+      - name: collector path parity (otel-traces exporter-default)
+        run: |
+          for path in direct collector; do
+            bin/bench --target altinity/local-single --workload otel-traces --scenario exporter-default \
+              --rows 20000 --iterations 1 --ingest-path "$path" --time-end 2026-06-01T00:00:00Z \
+              --results-dir "/tmp/pp/$path"
+          done
+          bin/bench compare --runs "$(ls -d /tmp/pp/direct/otel-traces/exporter-default/altinity/local-single/*/)","$(ls -d /tmp/pp/collector/otel-traces/exporter-default/altinity/local-single/*/)"
+      - name: teardown
+        if: always()
+        run: |
+          targets/collector/down || true
+          targets/altinity/down local-single
+          targets/upstream-oss/down local-single
