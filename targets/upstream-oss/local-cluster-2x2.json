@@ -1,0 +1,28 @@
+{
+  "name": "upstream-oss/local-cluster-2x2",
+  "platform": "upstream-oss",
+  "tier": "local-cluster",
+  "deployment": "compose-2x2",
+  "image": "clickhouse/clickhouse-server:26.3.33.24",
+  "expected_version": "26.3.33.24",
+  "dialect": "replicated",
+  "cluster": "ch_eval",
+  "shards": 2,
+  "replicas": 2,
+  "storage": "local",
+  "storage_policy": "",
+  "shape": {
+    "vcpu_per_replica": null,
+    "gib_per_replica": null
+  },
+  "location": "local-docker",
+  "ports": {
+    "native_base": 29200,
+    "http_base": 28323
+  },
+  "dsn_env": "CLICKHOUSE_DSN_UPSTREAM_OSS_LOCAL_CLUSTER_2X2",
+  "notes": "Local tier: correctness, parity and smoke only (ADR-0005). Never a performance result.",
+  "keeper_image": "clickhouse/clickhouse-keeper:26.3.33.24",
+  "keepers": 3,
+  "mem_bytes_per_node": 1500000000
+}

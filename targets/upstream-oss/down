@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# targets/upstream-oss/down <tier>: single entry point; dispatches on the tier manifest's deployment.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+tier="${1:?usage: targets/upstream-oss/down <tier> (see targets/upstream-oss/*.json)}"
+man="$ROOT/targets/upstream-oss/$tier.json"
+[ -f "$man" ] || { echo "unknown tier $tier (no $man)" >&2; exit 2; }
+dep=$(python3 -c "import json; print(json.load(open('$man'))['deployment'])")
+case "$dep" in
+  compose-*) exec "$ROOT/targets/compose/down" upstream-oss "$tier" ;;
+  kind-*)    exec "$ROOT/targets/kind/down" upstream-oss "$tier" ;;
+  aws-*)     exec "$ROOT/targets/aws/down" upstream-oss "$tier" ;;
+  *) echo "unknown deployment $dep" >&2; exit 2 ;;
+esac

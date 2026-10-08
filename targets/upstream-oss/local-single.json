@@ -1,0 +1,25 @@
+{
+  "name": "upstream-oss/local-single",
+  "platform": "upstream-oss",
+  "tier": "local-single",
+  "deployment": "compose-single",
+  "image": "clickhouse/clickhouse-server:26.3.33.24",
+  "expected_version": "26.3.33.24",
+  "dialect": "single",
+  "cluster": "",
+  "shards": 1,
+  "replicas": 1,
+  "storage": "local",
+  "storage_policy": "",
+  "shape": {
+    "vcpu_per_replica": null,
+    "gib_per_replica": null
+  },
+  "location": "local-docker",
+  "ports": {
+    "native_base": 29000,
+    "http_base": 28123
+  },
+  "dsn_env": "CLICKHOUSE_DSN_UPSTREAM_OSS_LOCAL_SINGLE",
+  "notes": "Local tier: correctness, parity and smoke only (ADR-0005). Never a performance result."
+}

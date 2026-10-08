@@ -1,0 +1,3 @@
+-- Reverse of the create migration.
+{{ dropDistributed "baseline_openmeter_events" }};
+DROP TABLE IF EXISTS {{ db }}.{{ table "baseline_openmeter_events" }} {{ onCluster }} SYNC;

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# targets/compose/down <platform> <tier>: stop and remove a local compose tier (volumes included) and verify.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+platform="$1"; tier="$2"
+man="$ROOT/targets/$platform/$tier.json"
+deployment=$(python3 -c "import json; print(json.load(open('$man'))['deployment'])")
+state="$ROOT/targets/.state/$platform-$deployment"
+project="cheval-$platform-$deployment"
+[ -f "$state/docker-compose.yml" ] && docker compose -f "$state/docker-compose.yml" down -v >/dev/null 2>&1 || true
+left=$(docker ps -a --filter "label=com.docker.compose.project=$project" -q | wc -l)
+if [ "$left" != "0" ]; then echo "down: $left containers of $project remain" >&2; exit 1; fi
+echo "down: $project removed"

@@ -1,0 +1,21 @@
+{
+  "name": "cloud/scale",
+  "platform": "cloud",
+  "tier": "cloud",
+  "deployment": "cloud-api",
+  "image": "",
+  "expected_version": "",
+  "dialect": "cloud",
+  "cluster": "default",
+  "shards": 1,
+  "replicas": 2,
+  "storage": "shared",
+  "storage_policy": "",
+  "shape": {
+    "vcpu_per_replica": 4,
+    "gib_per_replica": 16
+  },
+  "location": "aws/<region chosen by owner>",
+  "dsn_env": "CLICKHOUSE_DSN_CLOUD",
+  "notes": "Paid. Created only after owner approval of a spend estimate (targets/cloud/up refuses without BUDGET_ACK). Version is read live; Cloud does not publish patch versions."
+}

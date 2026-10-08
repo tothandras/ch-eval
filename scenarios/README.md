@@ -1,57 +1,64 @@
 # scenarios
 
-Each subdirectory is one table-design variant for the benchmark use-case.
+Scenarios are grouped by workload: `scenarios/<workload>/<variant>/`. Each
+variant is one table design for that workload.
 
-Current variants:
+Current variants of the `openmeter` workload:
 
-- `baseline-openmeter/` — Verbatim reproduction of OpenMeter's `om_events` (`data String`, queried via `JSON_VALUE`). The reference.
-- `proposal/` — **The recommended default.** Combines `data JSON` + `CODEC(ZSTD(3))` + a `bloom_filter` skip index on `id`, queried via native subcolumns. Includes the full meter-query set plus `lookup_by_id.sql` (so the `id` bloom is exercised) and the extra grouped Kong api variants. Head-to-head numbers: top-level README, "Results: 10M head-to-head".
+- `openmeter/baseline-openmeter/` — Verbatim reproduction of OpenMeter's `om_events` (`data String`, queried via `JSON_VALUE`). The reference.
+- `openmeter/proposal/` — **The recommended default** of the forked harness. Combines `data JSON` + `CODEC(ZSTD(3))` + a `bloom_filter` skip index on `id`, queried via native subcolumns. Includes the full meter-query set plus `lookup_by_id.sql` (so the `id` bloom is exercised) and the extra grouped Kong api variants.
 
-Earlier standalone variants (`data-as-json`, `data-as-map`, `order-by-extended-time`, `with-id-bloom`) were folded into `proposal` or retired; see git history to re-measure any lever on your own hardware.
-
-**Table naming.** Each scenario uses its own table name, derived from the
-directory: `scenarios/<dir>/` → `<dir_with_underscores>_events` (e.g.
-`baseline-openmeter` → `baseline_openmeter_events`, `proposal` → `proposal_events`).
-Scenarios coexist in the same database without clobbering each other — no
-need to drop between scenarios or point at separate databases. The
-harness derives the table name from the scenario directory; init.sql,
-queries, and the seeder all use the same derived name.
+The OTel workloads (`otel-traces`, `otel-metrics`, `otel-logs`) are added in
+Phase 2–5 (see `openspec/changes/cross-target-evaluation/`).
 
 ```
-scenarios/<name>/
-  init.sql          # DDL: CREATE TABLE / MATERIALIZED VIEW / PROJECTION statements
-  queries/          # one .sql file per benchmark query (one SELECT each)
-  seed.sql          # optional: pure-SQL data loader (use INSERT ... SELECT generateRandom() etc.)
+scenarios/<workload>/<variant>/
+  scenario.json     # workload, database, logical tables (first = seeded table), generator
+  init/             # migrations: YYYYMMDDHHMMSS_name.up.sql[.tmpl] + .down.sql[.tmpl]
+  queries/          # one .sql file per benchmark query (one SELECT each), plus mix.json
 ```
 
-The benchmark harness in `bench/` discovers scenarios by directory name. Every
-direct subdirectory containing an `init.sql` is treated as a runnable scenario;
-other directories are skipped with a warning.
+`scenario.json`:
 
-## init.sql contract
+```json
+{"workload": "openmeter", "database": "openmeter", "tables": ["proposal_events"], "generator": "openmeter-events"}
+```
 
-- MUST be idempotent. Every statement uses `CREATE ... IF NOT EXISTS` so
-  re-applying is a no-op. The harness applies `init.sql` on every run.
-- MAY contain multiple statements separated by `;`. The harness executes them
-  in order against the configured database.
-- MAY use `{{database}}` for the target database name (the harness substitutes
-  it from the DSN). If absent, statements use whatever default database the
-  connection lands in.
+**Table naming.** Tables keep their names from the forked harness
+(`baseline_openmeter_events`, `proposal_events`), so the query files stay
+byte-identical. Each workload has its own database (`openmeter`), and the
+harness connects to it, so queries use unqualified table names.
+
+## init/ contract (migrations)
+
+- **Format and tooling.** `init/` is a migration set applied by
+  `migrations/migrate` ([ADR-0003](../docs/adr/0003-migration-tool.md)).
+  Files are named golang-migrate style, and `.tmpl` files are Go templates
+  rendered per target dialect:
+  - `single`: plain MergeTree;
+  - `replicated`: `Replicated*` engines with `ON CLUSTER`, plus a
+    `Distributed` table and `<table>_local` on sharded topologies;
+  - `cloud`: SharedMergeTree, no `ON CLUSTER`.
+- **Template helpers.** `db`, `table`, `onCluster`, `engine`,
+  `globalEngine`, `distributed`, `dropDistributed`, `settings`, `cluster`,
+  `dialect` and `sharded`. `bench migrate render --target T --scenario S`
+  prints what a target would run.
+- **Idempotent.** Every statement uses `IF [NOT] EXISTS` (lint-enforced).
+- **Down migrations drop what the up migration created.** A fresh `bench`
+  run rolls the set down and up again before seeding.
+- **Append-only once applied.** An applied migration whose rendered
+  checksum changes is an error. Ship a new migration instead.
 
 ## Seed contract
 
 Scenarios that need data populated can either:
 
-1. **Provide a `seed.sql`** for pure-SQL loaders (e.g.
-   `INSERT INTO <scenario>_events SELECT * FROM generateRandom(...) LIMIT N`).
-   The harness executes it once after `init.sql`. Best when the data shape can
-   be expressed in pure SQL.
-
-2. **Rely on the shared Go seeder under `bench/seed/`**. This is the default
+1. **Use a registered generator** named in `scenario.json`. `openmeter-events`
+   is the shared Go seeder under `bench/seed/`. This is the default
    for scenarios that need a structured JSON payload, deterministic RNG, or
    controllable group-by cardinality (most baseline OpenMeter-shaped
    scenarios). The seeder writes events matching the OpenMeter event shape;
-   the harness invokes it in-process when no `seed.sql` is present.
+   the harness invokes it in-process.
 
    The seeder emits a **weighted mix of heterogeneous event types** to model
    real OpenMeter usage, where the `data` field is user-controlled and differs
@@ -68,9 +75,9 @@ Scenarios that need data populated can either:
    `workload_seconds_by_region`, `agent_runs_by_name`) aggregate each type's
    own fields filtered by its `type`.
 
-A scenario MAY ship neither — the harness will then skip seeding and run
-queries against whatever data is already in the table (useful when comparing
-schemas against a pre-populated reference dataset).
+2. **Skip seeding** (`bench --skip-seed`). The harness then applies only
+   pending migrations and runs the queries against whatever data is already
+   in the table, which is useful for a pre-populated reference dataset.
 
 ## queries/ contract
 
@@ -133,8 +140,9 @@ discovery only picks up `*.sql` files.
 
 ## Discovery rules
 
-- The harness walks `scenarios/` to depth 1 and treats every direct
-  subdirectory containing `init.sql` as a scenario.
+- The harness walks `scenarios/<workload>/` (`--workload`, default
+  `openmeter`). Every subdirectory containing `init/` and `scenario.json` is a
+  scenario.
 - Files starting with `_` or `.`, and the `README.md` itself, are ignored.
 - A scenario can be selected explicitly via `--scenario <name>` (repeatable)
   on the harness CLI.

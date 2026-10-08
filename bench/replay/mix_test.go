@@ -33,8 +33,8 @@ func TestShippedManifestsValidate(t *testing.T) {
 		wantOnDisk int
 		hasLookup  bool
 	}{
-		{filepath.Join("..", "..", "scenarios", "proposal"), 34, true},
-		{filepath.Join("..", "..", "scenarios", "baseline-openmeter"), 30, false},
+		{filepath.Join("..", "..", "scenarios", "openmeter", "proposal"), 34, true},
+		{filepath.Join("..", "..", "scenarios", "openmeter", "baseline-openmeter"), 30, false},
 	} {
 		t.Run(filepath.Base(sc.dir), func(t *testing.T) {
 			queries := realScenarioQueries(t, sc.dir)

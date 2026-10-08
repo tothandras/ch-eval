@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# targets/altinity/down <tier>: single entry point; dispatches on the tier manifest's deployment.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+tier="${1:?usage: targets/altinity/down <tier> (see targets/altinity/*.json)}"
+man="$ROOT/targets/altinity/$tier.json"
+[ -f "$man" ] || { echo "unknown tier $tier (no $man)" >&2; exit 2; }
+dep=$(python3 -c "import json; print(json.load(open('$man'))['deployment'])")
+case "$dep" in
+  compose-*) exec "$ROOT/targets/compose/down" altinity "$tier" ;;
+  kind-*)    exec "$ROOT/targets/kind/down" altinity "$tier" ;;
+  aws-*)     exec "$ROOT/targets/aws/down" altinity "$tier" ;;
+  *) echo "unknown deployment $dep" >&2; exit 2 ;;
+esac

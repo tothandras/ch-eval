@@ -1,16 +1,18 @@
-// Command bench runs benchmark scenarios against a ClickHouse instance.
+// Command bench runs workload scenarios against a target platform.
 //
 // Per-query measurement is delegated to the official `clickhouse-benchmark`
 // CLI (which must be on PATH; the devenv provides it). The Go binary handles
-// scenario lifecycle: init.sql apply, seeding via bench/seed,
-// parameter rendering, and result file assembly.
+// the scenario lifecycle on a target: migrations (down+up for a fresh seed),
+// seeding via bench/seed, parameter rendering, value digests, target metadata
+// capture, and result assembly.
 //
 // Usage:
 //
-//	export CLICKHOUSE_DSN="clickhouse://default:@localhost:9000/default"
-//	bench --scenario baseline-openmeter --iterations 10 --concurrency 1
+//	bench --target altinity/local-single --workload openmeter --scenario proposal
 //
-// Each scenario writes one JSON result file to bench/results/<scenario>/.
+// The DSN comes from the target manifest's dsn_env variable (see .envrc.example),
+// then $CLICKHOUSE_DSN, then a local tier's passwordless default; --dsn overrides.
+// Each scenario writes results/<workload>/<scenario>/<platform>/<tier>/<run-id>/.
 package main
 
 import (
@@ -19,7 +21,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -29,7 +30,10 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/tothandras/ch-eval/bench/runner"
+	"github.com/tothandras/ch-eval/bench/runs"
+	"github.com/tothandras/ch-eval/bench/scenario"
 	"github.com/tothandras/ch-eval/bench/seed"
+	"github.com/tothandras/ch-eval/bench/target"
 )
 
 func main() {
@@ -41,6 +45,9 @@ func main() {
 
 type flags struct {
 	dsn             string
+	target          string
+	targetsDir      string
+	workload        string
 	scenarios       []string
 	scenariosDir    string
 	resultsDir      string
@@ -57,7 +64,8 @@ type flags struct {
 	namespaces      int
 	mixedValue      bool
 	skipSeed        bool
-	timeEnd         string // optional RFC3339 pin for seed TimeEnd; shared across scenarios for byte-identical time windows
+	allowDrift      bool
+	timeEnd         string // optional RFC3339 pin for seed TimeEnd; shared across scenarios and targets for byte-identical time windows
 }
 
 // resolveTimeEnd returns the pinned TimeEnd (if --time-end set) or the seeder
@@ -78,15 +86,18 @@ func newRootCmd() *cobra.Command {
 	f := &flags{}
 	cmd := &cobra.Command{
 		Use:   "bench",
-		Short: "Run ClickHouse benchmark scenarios via clickhouse-benchmark",
+		Short: "Run workload scenarios on a target via migrations and clickhouse-benchmark",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return run(cmd.Context(), f)
 		},
 	}
-	cmd.Flags().StringVar(&f.dsn, "dsn", "", "ClickHouse DSN (overrides $CLICKHOUSE_DSN)")
-	cmd.Flags().StringSliceVar(&f.scenarios, "scenario", nil, "scenario name(s); default = all discovered")
-	cmd.Flags().StringVar(&f.scenariosDir, "scenarios-dir", "scenarios", "directory holding scenarios")
-	cmd.Flags().StringVar(&f.resultsDir, "results-dir", "bench/results", "directory to write result JSON files")
+	cmd.Flags().StringVar(&f.target, "target", "", "target manifest <platform>/<tier> under --targets-dir (required), e.g. altinity/local-single")
+	cmd.Flags().StringVar(&f.targetsDir, "targets-dir", "targets", "directory holding target manifests")
+	cmd.Flags().StringVar(&f.workload, "workload", "openmeter", "workload under --scenarios-dir")
+	cmd.Flags().StringVar(&f.dsn, "dsn", "", "ClickHouse DSN (overrides the manifest's dsn_env and $CLICKHOUSE_DSN)")
+	cmd.Flags().StringSliceVar(&f.scenarios, "scenario", nil, "scenario name(s); default = all of the workload")
+	cmd.Flags().StringVar(&f.scenariosDir, "scenarios-dir", "scenarios", "directory holding <workload>/<scenario>/")
+	cmd.Flags().StringVar(&f.resultsDir, "results-dir", "results", "root of results/<workload>/<scenario>/<target>/<run-id>/")
 	cmd.Flags().IntVar(&f.iterations, "iterations", 10, "measured iterations per query")
 	cmd.Flags().IntSliceVar(&f.concurrency, "concurrency", []int{1}, "concurrency level(s), e.g. 1,8,16; each measured separately (clickhouse-benchmark -c)")
 	cmd.Flags().BoolVar(&f.coldPaired, "cold-paired", false, "measure each query warm AND cold (enable_filesystem_cache=0) in one run")
@@ -94,16 +105,67 @@ func newRootCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&f.requireClean, "require-clean", false, "refuse to run if the harness git tree is dirty (results would be unreproducible)")
 	cmd.Flags().IntVar(&f.rows, "rows", 1_000_000, "events to seed per scenario")
 	cmd.Flags().IntVar(&f.batchSize, "batch-size", 10_000, "INSERT batch size")
-	cmd.Flags().BoolVar(&f.asyncInsert, "async-insert", false, "enable async_insert SETTING on seed batches")
+	cmd.Flags().BoolVar(&f.asyncInsert, "async-insert", false, "seed with async_insert=1 (default: async_insert=0 set explicitly, since 26.2+ servers default it on)")
 	cmd.Flags().BoolVar(&f.waitAsyncInsert, "wait-async", false, "set wait_for_async_insert=1 when async-insert is true")
 	cmd.Flags().Uint64Var(&f.rngSeed, "seed", 42, "RNG seed for deterministic data generation")
 	cmd.Flags().IntVar(&f.namespaces, "namespaces", 1, "number of namespaces to spread seeded rows across (multi-tenant table)")
 	cmd.Flags().BoolVar(&f.mixedValue, "mixed-value", false, "emit baseline `value` in mixed JSON storage (number/string/bigint) to exercise the type-agnostic correctness fix")
-	cmd.Flags().BoolVar(&f.skipSeed, "skip-seed", false, "skip seeding (run queries against existing data)")
-	cmd.Flags().StringVar(&f.timeEnd, "time-end", "", "pin seed TimeEnd (RFC3339, e.g. 2026-06-01T00:00:00Z); shared across scenarios so their event time windows are byte-identical. Default: time.Now() truncated to the minute (per-scenario).")
+	cmd.Flags().BoolVar(&f.allowDrift, "allow-drift", false, "run even when the live target differs from its manifest (recorded in run.json)")
+	cmd.Flags().BoolVar(&f.skipSeed, "skip-seed", false, "skip the fresh migrate+seed (apply pending migrations only, query existing data)")
+	cmd.Flags().StringVar(&f.timeEnd, "time-end", "", "pin seed TimeEnd (RFC3339, e.g. 2026-06-01T00:00:00Z); required for cross-target parity. Default: time.Now() truncated to the minute.")
 	cmd.SilenceUsage = true
-	cmd.AddCommand(newCompareCmd(), newCogsCmd())
+	cmd.AddCommand(newCompareCmd(), newCogsCmd(), newMigrateCmd())
 	return cmd
+}
+
+// checkDrift fails the run when the live target differs from its manifest,
+// unless allowed (ADR-0002); allowed drift is still recorded in the run.
+func checkDrift(md target.Metadata, allow bool) error {
+	for _, d := range md.Drift {
+		fmt.Fprintf(os.Stderr, "warning: target drift: %s\n", d)
+	}
+	if len(md.Drift) > 0 && !allow {
+		return fmt.Errorf("target %s drifted from its manifest (%d difference(s)); fix the manifest or pass --allow-drift", md.Manifest.Name, len(md.Drift))
+	}
+	return nil
+}
+
+// connect opens a connection with database overridden (empty keeps the DSN's).
+func connect(ctx context.Context, opts clickhouse.Options, database string) (driver.Conn, error) {
+	if database != "" {
+		opts.Auth.Database = database
+	}
+	conn, err := clickhouse.Open(&opts)
+	if err != nil {
+		return nil, fmt.Errorf("connect: %w", err)
+	}
+	if err := conn.Ping(ctx); err != nil {
+		conn.Close()
+		return nil, fmt.Errorf("ping %v: %w", opts.Addr, err)
+	}
+	return conn, nil
+}
+
+// resolveTarget loads the manifest and parses its DSN.
+func resolveTarget(f *flags) (target.Manifest, *clickhouse.Options, string, error) {
+	if f.target == "" {
+		return target.Manifest{}, nil, "", errors.New("--target is required (for example altinity/local-single); see targets/README.md")
+	}
+	m, err := target.Load(f.targetsDir, f.target)
+	if err != nil {
+		return m, nil, "", err
+	}
+	dsn, src := f.dsn, "--dsn"
+	if dsn == "" {
+		if dsn, src, err = m.DSN(); err != nil {
+			return m, nil, "", err
+		}
+	}
+	opts, err := clickhouse.ParseDSN(dsn)
+	if err != nil {
+		return m, nil, "", fmt.Errorf("parse DSN from %s: %w", src, err)
+	}
+	return m, opts, src, nil
 }
 
 func run(ctx context.Context, f *flags) error {
@@ -122,83 +184,85 @@ func run(ctx context.Context, f *flags) error {
 		fmt.Fprintf(os.Stderr, "warning: harness tree is dirty (%s); results will be tagged -dirty and are not reproducible from the commit alone\n", commit)
 	}
 
-	dsn := f.dsn
-	if dsn == "" {
-		dsn = os.Getenv("CLICKHOUSE_DSN")
-	}
-	if dsn == "" {
-		return fmt.Errorf("no ClickHouse DSN: set --dsn or $CLICKHOUSE_DSN")
-	}
-
-	opts, err := clickhouse.ParseDSN(dsn)
+	m, opts, dsnSource, err := resolveTarget(f)
 	if err != nil {
-		return fmt.Errorf("parse DSN: %w", err)
+		return err
 	}
-	conn, err := clickhouse.Open(opts)
+	admin, err := connect(ctx, *opts, "")
 	if err != nil {
-		return fmt.Errorf("connect: %w", err)
+		return err
 	}
-	defer conn.Close()
-	if err := conn.Ping(ctx); err != nil {
-		return fmt.Errorf("ping: %w", err)
-	}
+	defer admin.Close()
 
 	host, port, err := hostPort(opts)
 	if err != nil {
 		return err
 	}
 
-	scenarios, err := runner.Discover(f.scenariosDir, f.scenarios)
+	scenarios, err := scenario.Discover(f.scenariosDir, f.workload, f.scenarios)
 	if err != nil {
 		return err
 	}
 	if len(scenarios) == 0 {
-		return fmt.Errorf("no scenarios found in %s", f.scenariosDir)
+		return fmt.Errorf("no scenarios found in %s/%s", f.scenariosDir, f.workload)
 	}
 
-	fingerprint, err := runner.Fingerprint(ctx, conn)
+	fingerprint, err := runner.Fingerprint(ctx, admin)
 	if err != nil {
 		return fmt.Errorf("fingerprint: %w", err)
+	}
+	md := target.Capture(ctx, admin, m, dsnSource, commit)
+	if err := checkDrift(md, f.allowDrift); err != nil {
+		return err
+	}
+	if m.IsLocal() {
+		fmt.Printf("target %s (%s, %s): local tier, results are smoke/parity only, never performance\n", m.Name, md.Version, m.Dialect)
 	}
 
 	// Per-invocation sweep id correlates query_log rows to this run's queries.
 	sweepID := time.Now().UTC().Format("20060102T150405Z")
 	var cpuProbe runner.CPUProbe
-	if runner.QueryLogAvailable(ctx, conn) {
-		cpuProbe = runner.NewCPUProbe(conn)
-	} else {
+	switch {
+	case !runner.QueryLogAvailable(ctx, admin):
 		fmt.Fprintln(os.Stderr, "warning: system.query_log unavailable on target; per-query CPU will be null")
+	case m.SystemCluster() != "" && m.Replicas*max(m.Shards, 1) > 1:
+		cpuProbe = runner.NewClusterCPUProbe(admin, m.SystemCluster())
+	default:
+		cpuProbe = runner.NewCPUProbe(admin)
 	}
 
 	for _, sc := range scenarios {
-		fmt.Printf("\n== scenario: %s ==\n", sc.Name)
+		fmt.Printf("\n== %s/%s on %s ==\n", sc.Workload, sc.Name, m.Name)
 		startedAt := time.Now()
-		table := scenarioTable(sc.Name)
+		runID := runs.NewRunID(startedAt)
+		logf := func(format string, a ...any) { fmt.Printf("   "+format+"\n", a...) }
 
-		// Drop first when we're about to reseed so a stale table from an earlier
-		// run of THIS scenario doesn't shadow the new init.sql with the wrong
-		// schema. Each scenario uses its own table name so scenarios coexist
-		// without clobbering each other; --skip-seed reuses whatever is there.
-		if !f.skipSeed {
-			if err := conn.Exec(ctx, "DROP TABLE IF EXISTS "+table+" SYNC"); err != nil {
-				return fmt.Errorf("drop %s before %s: %w", table, sc.Name, err)
-			}
+		// A fresh seed rolls the scenario's migrations down and up again, so the
+		// down path is exercised on every run and no stale schema shadows the
+		// current one. --skip-seed only applies pending migrations.
+		fmt.Printf(" migrations (fresh=%v) ...\n", !f.skipSeed)
+		applied, err := sc.Prepare(ctx, admin, m, !f.skipSeed, runID, logf)
+		if err != nil {
+			return fmt.Errorf("%s: migrations: %w", sc.Scope(), err)
 		}
 
-		fmt.Println(" init.sql ...")
-		if err := runner.ApplyInit(ctx, conn, sc, opts.Auth.Database); err != nil {
+		conn, err := connect(ctx, *opts, sc.Config.Database)
+		if err != nil {
 			return err
 		}
+		table := sc.Config.Tables[0]
 
 		var ingest *runner.IngestResult
+		var seedBlock *runs.SeedBlock
 		if !f.skipSeed {
-			ingest, err = doSeed(ctx, conn, sc, table, f)
+			ingest, seedBlock, err = doSeed(ctx, conn, admin, m, sc, f)
 			if err != nil {
+				conn.Close()
 				return err
 			}
 		}
 
-		queries := runner.LoadQueries(sc)
+		queries := sc.Queries()
 		fmt.Printf(" queries: %d (iterations=%d, concurrency=%v, repeat=%d, cold-paired=%v)\n",
 			len(queries), f.iterations, f.concurrency, f.repeat, f.coldPaired)
 
@@ -211,13 +275,14 @@ func run(ctx context.Context, f *flags) error {
 		// Capture the index-pruning signal once (it's a property of the table +
 		// index, independent of repeat/concurrency/cache). Attached to the
 		// matching query's results below.
-		pruning := captureIndexPruning(ctx, conn, sc, table, defaultParams(f))
+		pruning := captureIndexPruning(ctx, conn, queries, table, defaultParams(f))
 
 		// Capture each query's normalized result digest once (a property of
 		// (scenario, query, params), independent of the timed variants). Stored in
 		// the run JSON so `bench compare` can check value parity across scenarios
-		// with no extra DB round-trip.
-		valueParity := captureValueDigests(ctx, conn, sc, f)
+		// and targets with no extra DB round-trip.
+		valueParity := captureValueDigests(ctx, conn, sc.Name, queries, f)
+		conn.Close()
 
 		var results []runner.BenchResult
 		for rep := 0; rep < f.repeat; rep++ {
@@ -227,7 +292,7 @@ func run(ctx context.Context, f *flags) error {
 						Host:        host,
 						Port:        port,
 						Secure:      opts.TLS != nil,
-						Database:    opts.Auth.Database,
+						Database:    sc.Config.Database,
 						User:        opts.Auth.Username,
 						Password:    opts.Auth.Password,
 						Iterations:  f.iterations,
@@ -264,32 +329,36 @@ func run(ctx context.Context, f *flags) error {
 			}
 		}
 
-		runRecord := runner.Run{
-			Scenario:           sc.Name,
-			HarnessCommit:      commit,
-			SweepID:            sweepID,
-			StartedAt:          startedAt,
-			FinishedAt:         time.Now(),
-			ClusterFingerprint: fingerprint,
-			Concurrency:        f.concurrency,
-			Repeat:             f.repeat,
-			Ingest:             ingest,
-			Queries:            results,
-			ValueParity:        valueParity,
+		rec := runs.Run{
+			Run: runner.Run{
+				Scenario:           sc.Name,
+				HarnessCommit:      commit,
+				SweepID:            sweepID,
+				StartedAt:          startedAt,
+				FinishedAt:         time.Now(),
+				ClusterFingerprint: fingerprint,
+				Concurrency:        f.concurrency,
+				Repeat:             f.repeat,
+				Ingest:             ingest,
+				Queries:            results,
+				ValueParity:        valueParity,
+			},
+			RunID:      runID,
+			Workload:   sc.Workload,
+			Target:     runs.Block(m, md),
+			Seed:       seedBlock,
+			Migrations: applied,
+			SmokeOnly:  m.IsLocal(),
 		}
-		path, err := runner.Write(f.resultsDir, runRecord)
+		report := runner.RenderReport(rec.Run, queries)
+		if rec.SmokeOnly {
+			report = fmt.Sprintf("> Target `%s` is a local tier: this run backs parity and correctness only, never performance.\n\n", m.Name) + report
+		}
+		dir, err := runs.Write(f.resultsDir, rec, report, md)
 		if err != nil {
-			return fmt.Errorf("write result: %w", err)
+			return fmt.Errorf("write results: %w", err)
 		}
-		rel, _ := filepath.Rel(".", path)
-		fmt.Printf(" wrote: %s\n", rel)
-
-		reportPath, err := runner.WriteReport(f.resultsDir, runRecord, queries)
-		if err != nil {
-			return fmt.Errorf("write report: %w", err)
-		}
-		relReport, _ := filepath.Rel(".", reportPath)
-		fmt.Printf(" wrote: %s\n", relReport)
+		fmt.Printf(" wrote: %s/{run.json,report.md,metadata.json}\n", dir)
 	}
 
 	return nil
@@ -312,9 +381,9 @@ func cacheTag(cold bool) string {
 // counts each scans. Returns nil (no error surfaced) when the scenario has no
 // lookup_by_id query, the table is empty, or EXPLAIN fails — the signal is
 // best-effort enrichment, never a reason to abort the run.
-func captureIndexPruning(ctx context.Context, conn driver.Conn, sc runner.Scenario, table string, params map[string]string) *runner.IndexPruning {
+func captureIndexPruning(ctx context.Context, conn driver.Conn, queries []runner.Query, table string, params map[string]string) *runner.IndexPruning {
 	hasLookup := false
-	for _, q := range runner.LoadQueries(sc) {
+	for _, q := range queries {
 		if q.Name == lookupByIDQuery {
 			hasLookup = true
 			break
@@ -389,7 +458,7 @@ func captureIndexPruning(ctx context.Context, conn driver.Conn, sc runner.Scenar
 // digests, gated on an identical window. Best-effort: a per-query failure is
 // recorded as a digest error, never aborts the run; returns nil only if params
 // can't be built at all.
-func captureValueDigests(ctx context.Context, conn driver.Conn, sc runner.Scenario, f *flags) *runner.ValueParity {
+func captureValueDigests(ctx context.Context, conn driver.Conn, scenarioName string, queries []runner.Query, f *flags) *runner.ValueParity {
 	params := defaultParams(f)
 	// Record the window as a readable UTC wall-clock string (params["from"]/["to"]
 	// are now Unix-second integers — TZ-independent for the SQL, but opaque in the
@@ -406,7 +475,7 @@ func captureValueDigests(ctx context.Context, conn driver.Conn, sc runner.Scenar
 		TimeEnd: f.timeEnd,
 		Digests: map[string]runner.QueryDigest{},
 	}
-	for _, q := range runner.LoadQueries(sc) {
+	for _, q := range queries {
 		sql, err := runner.RenderParams(q.SQL, params)
 		if err != nil {
 			vp.Digests[q.Name] = runner.QueryDigest{Error: err.Error()}
@@ -414,7 +483,7 @@ func captureValueDigests(ctx context.Context, conn driver.Conn, sc runner.Scenar
 		}
 		d, err := runner.DigestResult(ctx, conn, strings.TrimRight(strings.TrimSpace(sql), ";"))
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "warning: value digest for %s/%s skipped: %v\n", sc.Name, q.Name, err)
+			fmt.Fprintf(os.Stderr, "warning: value digest for %s/%s skipped: %v\n", scenarioName, q.Name, err)
 		}
 		vp.Digests[q.Name] = d
 	}
@@ -460,22 +529,19 @@ func hostPort(opts *clickhouse.Options) (string, int, error) {
 	return h, port, nil
 }
 
-func doSeed(ctx context.Context, conn driver.Conn, sc runner.Scenario, table string, f *flags) (*runner.IngestResult, error) {
-	// Pure-SQL seed wins if scenario provides one (e.g. generateRandom-based).
-	if sc.HasSeed {
-		fmt.Println(" seed.sql ...")
-		start := time.Now()
-		if err := runner.ApplySeedSQL(ctx, conn, sc); err != nil {
-			return nil, err
-		}
-		return &runner.IngestResult{
-			Source:          "seed.sql",
-			DurationSeconds: time.Since(start).Seconds(),
-		}, nil
+// doSeed inserts the generated events into the scenario's main table (the
+// Distributed table on a sharded target). Seeding sets async_insert explicitly:
+// 26.2+ servers default async_insert=1, and the harness must not inherit a
+// server default that differs across targets. On a sharded target the insert is
+// synchronous (distributed_foreground_insert=1) so the data is on the shards when
+// the timed queries start; on a replicated target the replicas are synced before
+// measuring so digests do not depend on which replica answers.
+func doSeed(ctx context.Context, conn, admin driver.Conn, m target.Manifest, sc scenario.Scenario, f *flags) (*runner.IngestResult, *runs.SeedBlock, error) {
+	if sc.Config.Generator != "openmeter-events" {
+		return nil, nil, fmt.Errorf("%s: generator %q is not registered", sc.Scope(), sc.Config.Generator)
 	}
-
 	cfg := seed.DefaultConfig()
-	cfg.Table = table
+	cfg.Table = sc.Config.Database + "." + sc.Config.Tables[0]
 	cfg.Rows = f.rows
 	cfg.BatchSize = f.batchSize
 	cfg.AsyncInsert = f.asyncInsert
@@ -483,21 +549,44 @@ func doSeed(ctx context.Context, conn driver.Conn, sc runner.Scenario, table str
 	cfg.Seed = f.rngSeed
 	cfg.Namespaces = f.namespaces
 	cfg.MixedValueStorage = f.mixedValue
+	cfg.Settings = map[string]any{"async_insert": 0}
+	if m.Dialect == "replicated" && m.Shards > 1 {
+		cfg.Settings["distributed_foreground_insert"] = 1
+	}
 	te, err := f.resolveTimeEnd()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	cfg.TimeEnd = te // shared across scenarios when --time-end is set → identical time windows
+	cfg.TimeEnd = te // shared across scenarios and targets when --time-end is set → identical windows
 
-	fmt.Printf(" seed: %d rows (batch=%d, async=%v, namespaces=%d) ...\n",
-		cfg.Rows, cfg.BatchSize, cfg.AsyncInsert, max(f.namespaces, 1))
+	fmt.Printf(" seed: %d rows into %s (batch=%d, async=%v, namespaces=%d) ...\n",
+		cfg.Rows, cfg.Table, cfg.BatchSize, cfg.AsyncInsert, max(f.namespaces, 1))
 	res, err := seed.Run(ctx, conn, cfg)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	fmt.Printf(" seed done: %d events in %s (%.0f events/sec)\n",
 		res.Rows, res.Duration.Round(time.Millisecond), res.EventsPerSecond)
-	return runner.FromSeedResult(res), nil
+
+	if m.Dialect == "replicated" && m.Replicas > 1 {
+		q := fmt.Sprintf("SYSTEM SYNC REPLICA ON CLUSTER '%s' %s.%s", m.Cluster, sc.Config.Database, sc.PhysicalTable(m))
+		if err := admin.Exec(ctx, q); err != nil {
+			return nil, nil, fmt.Errorf("sync replicas after seed: %w", err)
+		}
+	}
+	settings := map[string]any{}
+	for k, v := range cfg.Settings {
+		settings[k] = v
+	}
+	if cfg.AsyncInsert {
+		settings["async_insert"] = 1
+		settings["wait_for_async_insert"] = map[bool]int{true: 1, false: 0}[cfg.WaitAsyncInsert]
+	}
+	block := &runs.SeedBlock{
+		Generator: sc.Config.Generator, Rows: res.Rows, RNGSeed: cfg.Seed, Namespaces: max(f.namespaces, 1),
+		TimeEnd: cfg.TimeEnd.UTC().Format(time.RFC3339), Table: cfg.Table, Settings: settings,
+	}
+	return runner.FromSeedResult(res), block, nil
 }
 
 // defaultParams returns the v1 fixed parameter set documented in
@@ -545,9 +634,4 @@ func defaultParams(f *flags) map[string]string {
 // handle the apostrophe case.
 func sqlString(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", "''") + "'"
-}
-
-// scenarioTable derives the table name for a scenario; see runner.ScenarioTable.
-func scenarioTable(name string) string {
-	return runner.ScenarioTable(name)
 }

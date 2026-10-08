@@ -1,0 +1,3 @@
+-- Reverse of the create migration.
+{{ dropDistributed "proposal_events" }};
+DROP TABLE IF EXISTS {{ db }}.{{ table "proposal_events" }} {{ onCluster }} SYNC;

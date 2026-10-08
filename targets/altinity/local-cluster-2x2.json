@@ -1,0 +1,28 @@
+{
+  "name": "altinity/local-cluster-2x2",
+  "platform": "altinity",
+  "tier": "local-cluster",
+  "deployment": "compose-2x2",
+  "image": "altinity/clickhouse-server:26.3.33.10001.altinitystable",
+  "expected_version": "26.3.33.10001.altinitystable",
+  "dialect": "replicated",
+  "cluster": "ch_eval",
+  "shards": 2,
+  "replicas": 2,
+  "storage": "local",
+  "storage_policy": "",
+  "shape": {
+    "vcpu_per_replica": null,
+    "gib_per_replica": null
+  },
+  "location": "local-docker",
+  "ports": {
+    "native_base": 19200,
+    "http_base": 18323
+  },
+  "dsn_env": "CLICKHOUSE_DSN_ALTINITY_LOCAL_CLUSTER_2X2",
+  "notes": "Local tier: correctness, parity and smoke only (ADR-0005). Never a performance result.",
+  "keeper_image": "altinity/clickhouse-keeper:26.3.33.10001.altinitystable",
+  "keepers": 3,
+  "mem_bytes_per_node": 1500000000
+}

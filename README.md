@@ -4,8 +4,9 @@
 logs, how do ClickHouse Cloud and self-managed Altinity ClickHouse (OSS)
 compare on capability, performance, cost and operational burden?
 
-**Status.** Phase 1 (plan plus draft feature matrix). No performance
-conclusions yet. See [`PROGRESS.md`](PROGRESS.md) for the live log and
+**Status.** Phase 2 (local targets, migrations, harness integration) is in
+progress. No performance conclusions yet; local runs are smoke and parity
+only. See [`PROGRESS.md`](PROGRESS.md) for the live log and
 [`openspec/changes/cross-target-evaluation/`](openspec/changes/cross-target-evaluation/)
 for the plan.
 
@@ -17,7 +18,7 @@ for the plan.
 | `altinity` | Altinity Stable `26.3.33.10001.altinitystable`, Altinity operator + ClickHouse Keeper | The candidate |
 | `upstream-oss` | Upstream `26.3.33.24` (same 26.3.33 base), same topology | Separates build effects from version and architecture effects |
 
-## Layout (target state; built in Phase 2)
+## Layout
 
 | Path | Contents |
 | --- | --- |
@@ -30,18 +31,30 @@ for the plan.
 | `docs/` | [`feature-matrix.md`](docs/feature-matrix.md), [`methodology.md`](docs/methodology.md), [`adr/`](docs/adr/), [`research/`](docs/research/) |
 | `REPORT.md` | Generated from `results/` by `bench report`, never hand-typed |
 
-During Phase 1 the forked harness still uses its original layout:
-`scenarios/<name>/` and `bench/results/`.
-
-## Quick start (forked harness, single target)
+## Quick start (local targets)
 
 ```bash
-cp .envrc.example .envrc && direnv allow   # or: devenv shell
-export CLICKHOUSE_DSN="clickhouse://default:@127.0.0.1:9000/default"
+targets/altinity/up local-single
+targets/upstream-oss/up local-single
 go build -o bin/bench ./bench/cmd/bench
-./bin/bench --scenario baseline-openmeter --scenario proposal --rows 1000000 --time-end 2026-06-09T00:00:00Z
-./bin/bench compare baseline-openmeter proposal
+
+# fresh migrate (down+up) + seed + timed queries + digests, per target
+for t in altinity/local-single upstream-oss/local-single; do
+  ./bin/bench --target $t --workload openmeter --rows 1000000 --time-end 2026-06-01T00:00:00Z
+done
+
+# cross-target compare with the value-parity gate (exits non-zero on mismatch)
+./bin/bench compare --workload openmeter --scenario proposal \
+  --targets altinity/local-single,upstream-oss/local-single
+
+./bin/bench migrate status --target altinity/local-single --scenario proposal
+./bin/bench migrate verify --target altinity/local-single --scenario proposal
+
+targets/altinity/down local-single && targets/upstream-oss/down local-single
 ```
+
+DSNs come from each manifest's `dsn_env` variable (see `.envrc.example`).
+Local tiers fall back to their passwordless default.
 
 `clickhouse-benchmark` must be on `PATH`. Any ClickHouse server image ships it
 as `/usr/bin/clickhouse`.

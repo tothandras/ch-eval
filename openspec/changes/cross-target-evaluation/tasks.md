@@ -12,22 +12,22 @@
 
 ## 2. Phase 2: local targets, migrations, generators, parity green
 
-- [ ] 2.1 `targets/compose`: `local-single` and `local-cluster` (2 replicas + 3 Keeper + S3 emulator) for `altinity` and `upstream-oss`; one `up`/`down` each
+- [x] 2.1 `targets/compose`: `local-single` and `local-cluster` (2 replicas + 3 Keeper + S3 emulator) for `altinity` and `upstream-oss`; one `up`/`down` each
 - [ ] 2.2 `targets/kind`: Altinity operator 0.27.4 + CHK (3) + CHI (1×2) for both images; sandbox patches behind cgroup-v1 detection; images loaded with `kind load`
-- [ ] 2.3 Target manifests plus `bench/target`: DSN resolution, live metadata capture, drift check
-- [ ] 2.4 Results layout `results/<workload>/<scenario>/<target>/<run-id>/`; `--target`; workload-nested discovery (OpenMeter queries byte-identical)
-- [ ] 2.5 `bench migrate` (render/up/down/status/verify), `schema_migrations_ch`, lint, cost capture; port the OpenMeter inits to templated migrations
-- [ ] 2.6 Migration tests (up→down→up→up) on single, replicated (compose cluster and kind) for both builds
+- [x] 2.3 Target manifests plus `bench/target`: DSN resolution, live metadata capture, drift check (fails the run unless `--allow-drift`)
+- [x] 2.4 Results layout `results/<workload>/<scenario>/<target>/<run-id>/`; `--target`; workload-nested discovery (OpenMeter queries byte-identical)
+- [x] 2.5 `bench migrate` (render/up/down/status/verify/force), `schema_migrations_ch`, lint, cost capture (`--measure`); port the OpenMeter inits to templated migrations
+- [ ] 2.6 Migration tests (up→down→up→up) on single, replicated (compose cluster and kind) for both builds — compose done for both builds (`TestMigrationLifecycle`, `CH_EVAL_IT_TARGETS`); kind pending
 - [ ] 2.7 Probe runner plus `docs/feature-matrix.yaml` plus the generator for `feature-matrix.md`; implement the locally runnable probes
 - [ ] 2.8 OTel generators (traces, metrics, logs), deterministic with unit tests; direct-insert mappers for all variants
 - [ ] 2.9 Collector ingest path (compose service, `create_schema: false`) plus the path-parity test
-- [ ] 2.10 Cross-target `bench compare` with parity gate; local parity green for every workload and scenario on altinity vs upstream-oss
+- [ ] 2.10 Cross-target `bench compare` with parity gate; local parity green for every workload and scenario on altinity vs upstream-oss — compare and gate done; OpenMeter parity green (34/34, 30/30) on single, 1×2, 1×2 s3 and 2×2 for both builds; OTel pending
 - [ ] 2.11 CI workflow: lint, unit tests, `openspec validate`, migration tests, smoke run on altinity and upstream-oss (note: 10 forked files are not gofmt-clean; format them in a separate no-behaviour-change commit before gofmt becomes a gate)
 - [ ] 2.12 `replica-consistency` experiment implemented and smoke-tested on local-cluster and kind (no conclusions)
-- [ ] 2.13 Sharded topologies: compose `local-cluster` 2x2 profile and kind CHI 2x2; `shardedTable` migration helper; digest parity 2x2 vs 1x2 for openmeter
+- [ ] 2.13 Sharded topologies: compose `local-cluster` 2x2 profile and kind CHI 2x2; `shardedTable` migration helper; digest parity 2x2 vs 1x2 for openmeter — compose 2×2, the `distributed` helper and 2×2 parity (1 and 8 namespaces) done; kind 2×2 pending
 - [ ] 2.14 Opt-in Zipf namespace distribution in the generator (appended draw; default stream byte-identical, proven by test)
 - [ ] 2.15 Local correctness experiments: S3 (unavailable shard: default vs `skip_unavailable_shards`), S4 (Distributed insert modes, time-to-queryable), R3 (Keeper quorum loss on kind), R6 (ON CLUSTER with a replica down), E5/E6 (operator vertical change, add replica) at small scale
-- [ ] 2.16 Self-managed `s3` storage mode locally (S3 emulator + filesystem cache); cache-size cap knob for C2; locality metadata capture
+- [ ] 2.16 Self-managed `s3` storage mode locally (S3 emulator + filesystem cache); cache-size cap knob for C2; locality metadata capture — `local-cluster-s3` runs with parity green; cap knob and locality capture pending
 
 ## 3. Phase 3: OpenMeter cross-target perf (paid; STOP before creating resources)
 

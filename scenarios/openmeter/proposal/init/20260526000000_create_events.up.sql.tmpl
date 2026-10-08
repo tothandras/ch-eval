@@ -56,8 +56,13 @@
 --
 -- Everything else (column set, PARTITION BY, ORDER BY, the minmax skip
 -- index on stored_at) is upstream OpenMeter DDL, unchanged.
-
-CREATE TABLE IF NOT EXISTS proposal_events (
+--
+-- Templated for ch-eval (ADR-0003): only the table name, ON CLUSTER, engine, and
+-- storage-policy settings are templated; columns, indexes, PARTITION BY, and ORDER BY
+-- are unchanged from the source scenario. On sharded topologies the Distributed
+-- table keeps the original name so query files stay byte-identical; the sharding key
+-- keeps each tenant (namespace) on one shard.
+CREATE TABLE IF NOT EXISTS {{ db }}.{{ table "proposal_events" }} {{ onCluster }} (
   namespace String,
   id String,
   type LowCardinality(String),
@@ -70,6 +75,9 @@ CREATE TABLE IF NOT EXISTS proposal_events (
   INDEX om_events_stored_at stored_at TYPE minmax GRANULARITY 4,
   INDEX om_events_id_bloom  id        TYPE bloom_filter(0.01) GRANULARITY 1,  -- ← (3)
   store_row_id String
-) ENGINE = MergeTree
+) ENGINE = {{ engine "MergeTree" }}
 PARTITION BY toYYYYMM(time)
-ORDER BY (namespace, type, subject, toStartOfHour(time));
+ORDER BY (namespace, type, subject, toStartOfHour(time))
+{{ settings }};
+
+{{ distributed "proposal_events" "cityHash64(namespace)" }};

@@ -10,18 +10,26 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/ClickHouse/clickhouse-go/v2"
+	"time"
+
 	"github.com/spf13/cobra"
 
 	"github.com/tothandras/ch-eval/bench/cogs"
 	"github.com/tothandras/ch-eval/bench/runner"
+	"github.com/tothandras/ch-eval/bench/runs"
+	"github.com/tothandras/ch-eval/bench/scenario"
+	"github.com/tothandras/ch-eval/bench/target"
 )
 
 type cogsFlags struct {
 	dsn          string
+	target       string
+	targetsDir   string
+	workload     string
 	cell         string
 	runProfile   string
 	skipInit     bool
+	allowDrift   bool
 	requireClean bool
 	resultsDir   string
 	scenariosDir string
@@ -43,13 +51,17 @@ func newCogsCmd() *cobra.Command {
 			return runCogs(cmd.Context(), f)
 		},
 	}
-	cmd.Flags().StringVar(&f.dsn, "dsn", "", "ClickHouse DSN (overrides $CLICKHOUSE_DSN)")
+	cmd.Flags().StringVar(&f.dsn, "dsn", "", "ClickHouse DSN (overrides the manifest's dsn_env and $CLICKHOUSE_DSN)")
+	cmd.Flags().StringVar(&f.target, "target", "", "target manifest <platform>/<tier> (required)")
+	cmd.Flags().StringVar(&f.targetsDir, "targets-dir", "targets", "directory holding target manifests")
+	cmd.Flags().StringVar(&f.workload, "workload", "openmeter", "workload of the cell's scenario (a cell may also name <workload>/<scenario>)")
 	cmd.Flags().StringVar(&f.cell, "cell", "", "workload cell: a name resolved in --cells-dir, or a path to a manifest (required)")
 	cmd.Flags().StringVar(&f.runProfile, "profile", "", "run profile: \"ci\" shortens phases to 2m/3m/1m for smoke runs")
-	cmd.Flags().BoolVar(&f.skipInit, "skip-init", false, "reuse the existing table and data (skips init.sql and preload)")
+	cmd.Flags().BoolVar(&f.skipInit, "skip-init", false, "reuse the existing table and data (skips the fresh migration and preload)")
 	cmd.Flags().BoolVar(&f.requireClean, "require-clean", false, "refuse to run if the harness git tree is dirty")
-	cmd.Flags().StringVar(&f.resultsDir, "results-dir", "bench/results", "directory to write result files")
-	cmd.Flags().StringVar(&f.scenariosDir, "scenarios-dir", "scenarios", "directory holding scenarios")
+	cmd.Flags().BoolVar(&f.allowDrift, "allow-drift", false, "run even when the live target differs from its manifest")
+	cmd.Flags().StringVar(&f.resultsDir, "results-dir", "results", "results root; cogs runs go to <root>/<workload>/<scenario>/<platform>/<tier>/cogs/")
+	cmd.Flags().StringVar(&f.scenariosDir, "scenarios-dir", "scenarios", "directory holding <workload>/<scenario>/")
 	cmd.Flags().StringVar(&f.cellsDir, "cells-dir", "cells", "directory holding cell manifests")
 	cmd.Flags().StringVar(&f.pricingDir, "pricing-dir", "pricing", "directory holding pricing profiles")
 	cmd.Flags().StringVar(&f.usageExport, "usage-export", "", "ClickHouse Cloud usage export (cogs-usage/v1) to reconcile against")
@@ -96,7 +108,7 @@ func newCogsReconcileCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&resultsDir, "results-dir", "bench/results", "directory holding result files")
+	cmd.Flags().StringVar(&resultsDir, "results-dir", "results/openmeter", "workload results root; a run ref is <scenario>[/<platform>/<tier>] or a result path")
 	cmd.Flags().BoolVar(&write, "write", false, "write the reconciliation block back into the result JSON and regenerate the markdown")
 	return cmd
 }
@@ -115,30 +127,54 @@ func runCogs(ctx context.Context, f *cogsFlags) error {
 		fmt.Fprintf(os.Stderr, "warning: harness tree is dirty (%s); results will be tagged -dirty\n", commit)
 	}
 
-	dsn := f.dsn
-	if dsn == "" {
-		dsn = strings.Trim(os.Getenv("CLICKHOUSE_DSN"), `"`)
-	}
-	if dsn == "" {
-		return fmt.Errorf("no ClickHouse DSN: set --dsn or $CLICKHOUSE_DSN")
-	}
-	opts, err := clickhouse.ParseDSN(dsn)
+	m, opts, dsnSource, err := resolveTarget(&flags{dsn: f.dsn, target: f.target, targetsDir: f.targetsDir})
 	if err != nil {
-		return fmt.Errorf("parse DSN: %w", err)
+		return err
 	}
-	conn, err := clickhouse.Open(opts)
-	if err != nil {
-		return fmt.Errorf("connect: %w", err)
-	}
-	defer conn.Close()
-	if err := conn.Ping(ctx); err != nil {
-		return fmt.Errorf("ping: %w", err)
+	if m.IsLocal() && f.pricingProfile == "" {
+		fmt.Fprintf(os.Stderr, "warning: %s is a local tier; its costs are resource-accounting smoke only (consider --pricing-profile local-zero)\n", m.Name)
 	}
 
 	cellPath := f.cell
 	if !strings.HasSuffix(cellPath, ".json") {
 		cellPath = filepath.Join(f.cellsDir, f.cell+".json")
 	}
+	cell, err := cogs.LoadCell(cellPath)
+	if err != nil {
+		return err
+	}
+	workload, scName := f.workload, cell.Scenario
+	if w, n, ok := strings.Cut(cell.Scenario, "/"); ok {
+		workload, scName = w, n
+	}
+	scs, err := scenario.Discover(f.scenariosDir, workload, []string{scName})
+	if err != nil {
+		return err
+	}
+	sc := scs[0]
+
+	admin, err := connect(ctx, *opts, "")
+	if err != nil {
+		return err
+	}
+	defer admin.Close()
+	md := target.Capture(ctx, admin, m, dsnSource, commit)
+	if err := checkDrift(md, f.allowDrift); err != nil {
+		return err
+	}
+	if !f.skipInit {
+		fmt.Fprintf(os.Stderr, " migrations %s (fresh) ...\n", sc.Scope())
+		if _, err := sc.Prepare(ctx, admin, m, true, runs.NewRunID(time.Now()), func(format string, a ...any) {
+			fmt.Fprintf(os.Stderr, "   "+format+"\n", a...)
+		}); err != nil {
+			return fmt.Errorf("%s: migrations: %w", sc.Scope(), err)
+		}
+	}
+	conn, err := connect(ctx, *opts, sc.Config.Database)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
 
 	// SIGINT during measure truncates the window; the run still collects,
 	// prices, and reports over what it measured.
@@ -150,9 +186,10 @@ func runCogs(ctx context.Context, f *cogsFlags) error {
 		RunProfile:      f.runProfile,
 		SkipInit:        f.skipInit,
 		ResultsDir:      f.resultsDir,
-		ScenariosDir:    f.scenariosDir,
 		PricingDir:      f.pricingDir,
-		Database:        opts.Auth.Database,
+		Scenario:        sc,
+		Target:          m,
+		Database:        sc.Config.Database,
 		HarnessCommit:   commit,
 		UsageExport:     f.usageExport,
 		PricingOverride: f.pricingProfile,
@@ -163,17 +200,20 @@ func runCogs(ctx context.Context, f *cogsFlags) error {
 		return err
 	}
 
-	jsonPath, err := cogs.Write(f.resultsDir, res)
+	root := filepath.Join(f.resultsDir, sc.Workload)
+	jsonPath, err := cogs.Write(root, res)
 	if err != nil {
 		return fmt.Errorf("write result: %w", err)
 	}
-	mdPath, err := cogs.WriteReport(f.resultsDir, res)
+	mdPath, err := cogs.WriteReport(root, res)
 	if err != nil {
 		return fmt.Errorf("write report: %w", err)
 	}
 	for _, p := range []string{jsonPath, mdPath} {
-		rel, _ := filepath.Rel(".", p)
-		fmt.Printf(" wrote: %s\n", rel)
+		if rel, err := filepath.Rel(".", p); err == nil && !strings.HasPrefix(rel, "..") {
+			p = rel
+		}
+		fmt.Printf(" wrote: %s\n", p)
 	}
 	if len(res.Errors) > 0 {
 		fmt.Fprintf(os.Stderr, "completed with %d recorded error(s); see the result file\n", len(res.Errors))
@@ -206,7 +246,7 @@ func newCogsCompareCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&resultsDir, "results-dir", "bench/results", "directory holding result files")
+	cmd.Flags().StringVar(&resultsDir, "results-dir", "results/openmeter", "workload results root; a run ref is <scenario>[/<platform>/<tier>] or a result path")
 	cmd.Flags().BoolVar(&allowProfileMismatch, "allow-profile-mismatch", false, "compare resource lines even when pricing profiles differ (prices are omitted)")
 	return cmd
 }
@@ -235,6 +275,6 @@ func newCogsValidateCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&resultsDir, "results-dir", "bench/results", "directory holding result files")
+	cmd.Flags().StringVar(&resultsDir, "results-dir", "results/openmeter", "workload results root; a run ref is <scenario>[/<platform>/<tier>] or a result path")
 	return cmd
 }

@@ -220,3 +220,7 @@ func joinInts(xs []int) string {
 	}
 	return strings.Join(parts, ", ")
 }
+
+// RenderReport renders the markdown report for a run without writing it, for
+// callers that choose their own result layout (results/<workload>/<scenario>/<target>/<run-id>/).
+func RenderReport(run Run, queries []Query) string { return renderReport(run, queries) }

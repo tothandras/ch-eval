@@ -18,18 +18,25 @@ import (
 	"github.com/tothandras/ch-eval/bench/pricing"
 	"github.com/tothandras/ch-eval/bench/replay"
 	"github.com/tothandras/ch-eval/bench/runner"
+	"github.com/tothandras/ch-eval/bench/scenario"
 	"github.com/tothandras/ch-eval/bench/seed"
+	"github.com/tothandras/ch-eval/bench/target"
 )
 
 // Opts configures one cogs run.
 type Opts struct {
 	CellPath     string // path to the cell manifest
 	RunProfile   string // "" (manifest durations) or "ci"
-	SkipInit     bool   // reuse existing table + data (skips init.sql AND preload)
+	SkipInit     bool   // reuse existing table + data (skips preload; the caller skips the fresh migration)
 	ResultsDir   string
-	ScenariosDir string
 	PricingDir   string
-	Database     string // database of the connection (for system-table filters)
+	// Scenario is the resolved scenario; the caller has applied its migrations
+	// and conn's default database is Scenario.Config.Database.
+	Scenario scenario.Scenario
+	// Target is the manifest of the target the run executes on; it names the
+	// cluster whose replicas the accounting reads.
+	Target   target.Manifest
+	Database string // scenario database (for system-table filters)
 	HarnessCommit string
 
 	// UsageExport, when set, reconciles the run against a Cloud usage export.
@@ -89,22 +96,20 @@ func RunCell(ctx context.Context, conn driver.Conn, opts Opts) (Result, error) {
 		return Result{}, err
 	}
 
-	scenarios, err := runner.Discover(opts.ScenariosDir, []string{cell.Scenario})
-	if err != nil {
-		return Result{}, err
-	}
-	if len(scenarios) != 1 {
-		return Result{}, fmt.Errorf("cogs: scenario %q not found in %s", cell.Scenario, opts.ScenariosDir)
-	}
-	sc := scenarios[0]
-	table := runner.ScenarioTable(cell.Scenario)
-	scenarioDir := filepath.Join(opts.ScenariosDir, cell.Scenario)
+	sc := opts.Scenario
+	// insertTable receives ingest (the Distributed table on a sharded target);
+	// table holds the parts that storage and part_log accounting read.
+	insertTable := sc.Config.Database + "." + sc.Config.Tables[0]
+	table := sc.PhysicalTable(opts.Target)
+	scenarioDir := sc.Dir
 
 	res := Result{
 		Kind:          "cogs/v1",
 		RunID:         ulid.Make().String(),
 		Cell:          cell,
-		Scenario:      cell.Scenario,
+		Scenario:      sc.Name,
+		Workload:      sc.Workload,
+		Target:        opts.Target.Name,
 		HarnessCommit: opts.HarnessCommit,
 		StartedAt:     time.Now().UTC(),
 		Pricing:       profile,
@@ -118,7 +123,7 @@ func RunCell(ctx context.Context, conn driver.Conn, opts Opts) (Result, error) {
 
 	logf("== cogs cell %s on %s (run %s) ==", cell.Name, cell.Scenario, res.RunID)
 
-	target, err := accounting.DetectTarget(ctx, conn)
+	target, err := accounting.DetectTargetCluster(ctx, conn, opts.Target.SystemCluster())
 	if err != nil {
 		return Result{}, err
 	}
@@ -155,7 +160,7 @@ func RunCell(ctx context.Context, conn driver.Conn, opts Opts) (Result, error) {
 	var mix replay.Mix
 	var queryTemplates map[string]string
 	if cell.Query.QPS > 0 {
-		queries := runner.LoadQueries(sc)
+		queries := sc.Queries()
 		names := make([]string, len(queries))
 		queryTemplates = make(map[string]string, len(queries))
 		for i, q := range queries {
@@ -170,17 +175,10 @@ func RunCell(ctx context.Context, conn driver.Conn, opts Opts) (Result, error) {
 	}
 
 	if !opts.SkipInit {
-		logf(" init.sql ...")
-		if err := conn.Exec(ctx, "DROP TABLE IF EXISTS "+table+" SYNC"); err != nil {
-			return Result{}, fmt.Errorf("cogs: drop %s: %w", table, err)
-		}
-		if err := runner.ApplyInit(ctx, conn, sc, opts.Database); err != nil {
-			return Result{}, err
-		}
 		if cell.PreloadRows > 0 {
 			workers := max(1, opts.PreloadWorkers)
 			logf(" preload: %d rows (%d workers) ...", cell.PreloadRows, workers)
-			if err := parallelPreload(ctx, conn, seedConfig(cell, table), cell.PreloadRows, workers); err != nil {
+			if err := parallelPreload(ctx, conn, seedConfig(cell, insertTable, opts.Target), cell.PreloadRows, workers); err != nil {
 				return Result{}, fmt.Errorf("cogs: preload: %w", err)
 			}
 		}
@@ -196,7 +194,7 @@ func RunCell(ctx context.Context, conn driver.Conn, opts Opts) (Result, error) {
 	soakStart := time.Now().UTC()
 	if cell.Soak.D() > 0 {
 		logf(" soak: %s (plateau gate: ±10%% over %d polls) ...", cell.Soak.D(), accounting.PlateauWindow)
-		res.Phases.PartsPlateau = runSoak(ctx, conn, cell, table, opts.Database, logf)
+		res.Phases.PartsPlateau = runSoak(ctx, conn, cell, insertTable, table, opts.Database, opts.Target, logf)
 	} else {
 		// No soak phase: nothing to gate on.
 		res.Phases.PartsPlateau = true
@@ -225,7 +223,7 @@ func RunCell(ctx context.Context, conn driver.Conn, opts Opts) (Result, error) {
 
 	if cell.Ingest.EventsPerSec > 0 {
 		go func() {
-			gen, err := seed.NewGenerator(seedConfig(cell, table))
+			gen, err := seed.NewGenerator(seedConfig(cell, insertTable, opts.Target))
 			if err != nil {
 				ingestCh <- ingestOut{err: err}
 				return
@@ -238,9 +236,9 @@ func RunCell(ctx context.Context, conn driver.Conn, opts Opts) (Result, error) {
 				Gen:           gen,
 				Inserter: &ingest.CHInserter{
 					Conn:       conn,
-					Table:      table,
+					Table:      insertTable,
 					LogComment: fmt.Sprintf(`{"cogs_run":%q,"component":"ingest"}`, res.RunID),
-					Settings:   ingestSettings(cell),
+					Settings:   ingestSettings(cell, opts.Target),
 				},
 			})
 			ingestCh <- ingestOut{res: r, err: err}
@@ -402,7 +400,7 @@ func parallelPreload(ctx context.Context, conn driver.Conn, base seed.Config, ro
 
 // runSoak drives ingest (when the cell ingests) while polling the parts
 // plateau; it may end early once the plateau is reached.
-func runSoak(ctx context.Context, conn driver.Conn, cell Cell, table, database string, logf func(string, ...any)) bool {
+func runSoak(ctx context.Context, conn driver.Conn, cell Cell, insertTable, table, database string, m target.Manifest, logf func(string, ...any)) bool {
 	soakCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -410,7 +408,7 @@ func runSoak(ctx context.Context, conn driver.Conn, cell Cell, table, database s
 	if cell.Ingest.EventsPerSec > 0 {
 		go func() {
 			defer close(done)
-			gen, err := seed.NewGenerator(seedConfig(cell, table))
+			gen, err := seed.NewGenerator(seedConfig(cell, insertTable, m))
 			if err != nil {
 				logf("  warning: soak generator: %v", err)
 				return
@@ -423,8 +421,8 @@ func runSoak(ctx context.Context, conn driver.Conn, cell Cell, table, database s
 				Gen:           gen,
 				Inserter: &ingest.CHInserter{
 					Conn:     conn,
-					Table:    table,
-					Settings: ingestSettings(cell),
+					Table:    insertTable,
+					Settings: ingestSettings(cell, m),
 					// Soak inserts are tagged harness, not ingest: they are
 					// outside the measure window and must not be attributed.
 					LogComment: `{"component":"harness","cogs_run":"soak"}`,
@@ -469,9 +467,10 @@ func phase(start time.Time) PhaseInfo {
 // measure ingest share. TimeEnd pins to the current minute so preloaded
 // history is contiguous up to run start and the replayer's sliding window
 // covers it.
-func seedConfig(cell Cell, table string) seed.Config {
+func seedConfig(cell Cell, table string, m target.Manifest) seed.Config {
 	cfg := seed.DefaultConfig()
 	cfg.Table = table
+	cfg.Settings = ingestSettings(cell, m)
 	cfg.Seed = cell.Ingest.Seed
 	cfg.Namespaces = cell.Ingest.Namespaces
 	cfg.MixedValueStorage = cell.Ingest.MixedValue
@@ -479,11 +478,16 @@ func seedConfig(cell Cell, table string) seed.Config {
 	return cfg
 }
 
-func ingestSettings(cell Cell) map[string]any {
-	s := map[string]any{}
+// ingestSettings sets async_insert explicitly either way: 26.2+ servers default
+// it on, so a cell asking for synchronous inserts must say so.
+func ingestSettings(cell Cell, m target.Manifest) map[string]any {
+	s := map[string]any{"async_insert": 0}
 	if cell.Ingest.AsyncInsert {
 		s["async_insert"] = 1
 		s["wait_for_async_insert"] = 1
+	}
+	if m.Dialect == "replicated" && m.Shards > 1 {
+		s["distributed_foreground_insert"] = 1
 	}
 	return s
 }

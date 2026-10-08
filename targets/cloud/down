@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# targets/cloud/up <tier>: deletes the ClickHouse Cloud service and verifies deletion via the API.
+# Refuses unless BUDGET_ACK matches the run id the owner approved (spec: target-platforms).
+set -euo pipefail
+echo "targets/cloud/up: not implemented until Phase 3; paid resources require owner approval and BUDGET_ACK=<run-id>." >&2
+exit 3

@@ -24,10 +24,13 @@ type Window struct {
 
 // Target describes how to read system tables on the connected service.
 type Target struct {
-	// UseCluster selects clusterAllReplicas(default, system.X) over plain
+	// UseCluster selects clusterAllReplicas(<Cluster>, system.X) over plain
 	// system.X reads.
 	UseCluster bool
-	// Replicas is the node count of the `default` cluster (1 when absent).
+	// Cluster is the cluster whose replicas are read; "default" on Cloud, the
+	// manifest's cluster (for example ch_eval) on self-managed targets.
+	Cluster string
+	// Replicas is the reachable node count of Cluster (1 when absent).
 	Replicas int
 }
 
@@ -41,32 +44,49 @@ type Target struct {
 // (observed: 6 listed, 3 reachable on a 3-replica service), which would
 // inflate the coverage denominator.
 func DetectTarget(ctx context.Context, conn driver.Conn) (Target, error) {
+	return DetectTargetCluster(ctx, conn, "default")
+}
+
+// DetectTargetCluster is DetectTarget for a named cluster: self-managed targets
+// name their cluster in the target manifest (ADR-0002), and their `default`
+// cluster, when present, need not span the replicas.
+func DetectTargetCluster(ctx context.Context, conn driver.Conn, cluster string) (Target, error) {
+	if cluster == "" {
+		return Target{UseCluster: false, Replicas: 1}, nil
+	}
 	var listed uint64
-	err := conn.QueryRow(ctx, "SELECT count() FROM system.clusters WHERE cluster = 'default'").Scan(&listed)
+	err := conn.QueryRow(ctx, "SELECT count() FROM system.clusters WHERE cluster = ?", cluster).Scan(&listed)
 	if err != nil {
-		return Target{}, fmt.Errorf("accounting: probe default cluster: %w", err)
+		return Target{}, fmt.Errorf("accounting: probe %s cluster: %w", cluster, err)
 	}
 	if listed == 0 {
 		return Target{UseCluster: false, Replicas: 1}, nil
 	}
 	var reachable uint64
 	err = conn.QueryRow(ctx,
-		"SELECT count() FROM clusterAllReplicas(default, system.one) SETTINGS skip_unavailable_shards = 1").Scan(&reachable)
+		fmt.Sprintf("SELECT count() FROM clusterAllReplicas(%s, system.one) SETTINGS skip_unavailable_shards = 1", cluster)).Scan(&reachable)
 	if err != nil {
 		return Target{}, fmt.Errorf("accounting: count reachable replicas: %w", err)
 	}
 	if reachable == 0 {
 		reachable = 1
 	}
-	return Target{UseCluster: true, Replicas: int(reachable)}, nil
+	return Target{UseCluster: true, Cluster: cluster, Replicas: int(reachable)}, nil
 }
 
 // table renders the FROM source for a system log table on this target.
 func (t Target) table(name string) string {
 	if t.UseCluster {
-		return "clusterAllReplicas(default, system." + name + ")"
+		return "clusterAllReplicas(" + t.clusterName() + ", system." + name + ")"
 	}
 	return "system." + name
+}
+
+func (t Target) clusterName() string {
+	if t.Cluster == "" {
+		return "default"
+	}
+	return t.Cluster
 }
 
 // settingsSuffix tolerates cluster metadata listing unreachable pods (the

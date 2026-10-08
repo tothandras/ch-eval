@@ -68,6 +68,8 @@ type Result struct {
 	RunID         string                    `json:"run_id"`
 	Cell          Cell                      `json:"cell"`
 	Scenario      string                    `json:"scenario"`
+	Workload      string                    `json:"workload,omitempty"`
+	Target        string                    `json:"target,omitempty"` // <platform>/<tier>; "" on pre-fork results
 	HarnessCommit string                    `json:"harness_commit"`
 	StartedAt     time.Time                 `json:"started_at"`
 	FinishedAt    time.Time                 `json:"finished_at"`
@@ -90,7 +92,7 @@ type Result struct {
 // Write writes the JSON result under <resultsRoot>/<scenario>/cogs/, matching
 // the perf path's timestamp naming.
 func Write(resultsRoot string, r Result) (string, error) {
-	dir := filepath.Join(resultsRoot, r.Scenario, "cogs")
+	dir := resultDir(resultsRoot, r)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", fmt.Errorf("mkdir %s: %w", dir, err)
 	}
@@ -108,9 +110,15 @@ func Write(resultsRoot string, r Result) (string, error) {
 	return path, nil
 }
 
+// resultDir is <root>/<scenario>/<platform>/<tier>/cogs (the root already
+// includes the workload), or <root>/<scenario>/cogs for target-less results.
+func resultDir(root string, r Result) string {
+	return filepath.Join(root, r.Scenario, filepath.FromSlash(r.Target), "cogs")
+}
+
 // WriteReport renders and writes the sibling markdown report.
 func WriteReport(resultsRoot string, r Result) (string, error) {
-	dir := filepath.Join(resultsRoot, r.Scenario, "cogs")
+	dir := resultDir(resultsRoot, r)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", fmt.Errorf("mkdir %s: %w", dir, err)
 	}

@@ -7,8 +7,13 @@
 --
 -- Drift check: if the upstream string-template diverges from this file,
 -- update this file and bump the commit SHA above.
-
-CREATE TABLE IF NOT EXISTS baseline_openmeter_events (
+--
+-- Templated for ch-eval (ADR-0003): only the table name, ON CLUSTER, engine, and
+-- storage-policy settings are templated; columns, indexes, PARTITION BY, and ORDER BY
+-- are unchanged from the source scenario. On sharded topologies the Distributed
+-- table keeps the original name so query files stay byte-identical; the sharding key
+-- keeps each tenant (namespace) on one shard.
+CREATE TABLE IF NOT EXISTS {{ db }}.{{ table "baseline_openmeter_events" }} {{ onCluster }} (
   namespace String,
   id String,
   type LowCardinality(String),
@@ -20,6 +25,9 @@ CREATE TABLE IF NOT EXISTS baseline_openmeter_events (
   stored_at DateTime,
   INDEX om_events_stored_at stored_at TYPE minmax GRANULARITY 4,
   store_row_id String
-) ENGINE = MergeTree
+) ENGINE = {{ engine "MergeTree" }}
 PARTITION BY toYYYYMM(time)
-ORDER BY (namespace, type, subject, toStartOfHour(time));
+ORDER BY (namespace, type, subject, toStartOfHour(time))
+{{ settings }};
+
+{{ distributed "baseline_openmeter_events" "cityHash64(namespace)" }};

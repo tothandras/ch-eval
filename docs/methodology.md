@@ -38,12 +38,41 @@ finalized in Phase 7, but the rules below are already binding.
   separate service warm-ups.
 - Variance is reported as the spread of per-repeat p50s.
 - CPU: `OSCPUVirtualTimeMicroseconds` from `query_log`, read across replicas.
+  On a multi-node target the per-iteration CPU is the sum over every node's
+  `query_log` rows sharing the iteration's `initial_query_id`, read through
+  `clusterAllReplicas(<cluster>, system.query_log)`. The `log_comment` that
+  tags an iteration travels with the query to remote shards. Results record
+  the source as `os_cpu_cluster` (or `os_cpu` on a single node).
+- Seeding: every insert sets `async_insert` explicitly (0 unless
+  `--async-insert`), because 26.2+ servers default it to 1 and a server
+  default must not decide the insert path on one target only. On a sharded
+  target the seed goes through the Distributed table with
+  `distributed_foreground_insert=1`, so rows are on their shards before the
+  timed queries start. On a replicated target the harness runs
+  `SYSTEM SYNC REPLICA ON CLUSTER` before measuring.
+- Schema: each run rolls the scenario's migrations down and up again, so
+  the down path is exercised on every fresh run.
+  `bench migrate verify` checks every replica: each table exists, the engine
+  family matches the dialect, and the `CREATE` statement is identical.
 - Cold reads: `enable_filesystem_cache=0` where the target has a filesystem
   cache, plus explicit cache drops where the target allows them (feature-matrix
   ST-08). On self-managed EBS, the OS page cache is dropped on the node. Cloud
   cannot do this, which is a recorded asymmetry.
 - Settings: every run records changed session, MergeTree and server settings.
   Runs with different settings are not compared.
+
+## Parity gate
+
+- `bench compare --scenario S --targets a,b[,c]` diffs the value digests
+  of every query. Before diffing it requires identical seeded inputs:
+  generator, rows, RNG seed, namespaces and `time_end`. A mismatch, or a
+  differing digest, exits non-zero, and no performance statement is made for
+  that scenario until it is resolved.
+- When any side is a local tier, or the sides are on different tiers, the
+  output is labelled "smoke, not performance".
+- **Sharding caveat.** Sharding is by `cityHash64(namespace)`. With the
+  default single namespace every row lands on one shard, so parity on a
+  sharded target also needs a multi-namespace run (`--namespaces 8`).
 
 ## Cross-target verdict rules (to be finalized)
 

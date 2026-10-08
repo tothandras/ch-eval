@@ -64,6 +64,10 @@ type Config struct {
 	AsyncInsert bool
 	// WaitAsyncInsert sets wait_for_async_insert when AsyncInsert is true.
 	WaitAsyncInsert bool
+	// Settings are extra per-batch query settings (for example
+	// distributed_foreground_insert on a sharded target). AsyncInsert wins for the
+	// async keys.
+	Settings map[string]any
 
 	// MixedValueStorage, when true, emits the baseline `value` path in mixed JSON
 	// storage (number / stringified number / Float64-overflowing bigint) so the
@@ -529,6 +533,9 @@ func Run(ctx context.Context, conn driver.Conn, cfg Config) (Result, error) {
 	// Build the SETTINGS-aware INSERT statement once.
 	insertSQL := fmt.Sprintf("INSERT INTO %s (namespace, id, type, subject, source, time, data, ingested_at, stored_at, store_row_id)", cfg.Table)
 	settings := map[string]any{}
+	for k, v := range cfg.Settings {
+		settings[k] = v
+	}
 	if cfg.AsyncInsert {
 		settings["async_insert"] = 1
 		if cfg.WaitAsyncInsert {

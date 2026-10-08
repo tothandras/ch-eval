@@ -16,7 +16,7 @@ import (
 // the result records which guarantee it got.
 func FlushLogs(ctx context.Context, conn driver.Conn, target Target, settle time.Duration) (mode string) {
 	if target.UseCluster && target.Replicas > 1 {
-		if err := conn.Exec(ctx, "SYSTEM FLUSH LOGS ON CLUSTER default"); err == nil {
+		if err := conn.Exec(ctx, "SYSTEM FLUSH LOGS ON CLUSTER "+target.clusterName()); err == nil {
 			return "cluster"
 		}
 	}

@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# targets/compose/up <platform> <tier>: start a local compose tier from its manifest.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+platform="$1"; tier="$2"
+man="$ROOT/targets/$platform/$tier.json"
+[ -f "$man" ] || { echo "no manifest $man" >&2; exit 2; }
+jqr() { python3 -c "import json,sys; d=json.load(open('$man')); v=d$1; print(v if v is not None else '')"; }
+deployment=$(jqr "['deployment']"); image=$(jqr "['image']"); kimage=$(jqr ".get('keeper_image','')")
+shards=$(jqr ".get('shards',1)"); replicas=$(jqr ".get('replicas',1)"); port=$(jqr "['ports']['native_base']")
+state="$ROOT/targets/.state/$platform-$deployment"; mkdir -p "$state"
+project="cheval-$platform-$deployment"
+if [ "$(jqr "['dialect']")" = "single" ]; then
+  python3 "$ROOT/targets/compose/gen.py" "$state" --project "$project" --image "$image" --port-base "$port" --single
+else
+  python3 "$ROOT/targets/compose/gen.py" "$state" --project "$project" --image "$image" --keeper-image "$kimage" --port-base "$port" --shards "$shards" --replicas "$replicas" --mem-bytes "$(jqr ".get('mem_bytes_per_node', 2500000000)")"
+fi
+docker compose -f "$state/docker-compose.yml" up -d >/dev/null 2>&1
+if grep -q '^  s3:' "$state/docker-compose.yml"; then
+  ok=0
+  for i in $(seq 1 90); do
+    echo "s3.bucket.create -name ch-eval" | docker compose -f "$state/docker-compose.yml" exec -T s3 weed shell -master=localhost:9333 >/dev/null 2>&1 || true
+    if echo "s3.bucket.list" | docker compose -f "$state/docker-compose.yml" exec -T s3 weed shell -master=localhost:9333 2>/dev/null | grep -q 'ch-eval'; then ok=1; break; fi
+    sleep 1
+  done
+  [ "$ok" = 1 ] || { echo "up: S3 bucket not ready" >&2; exit 1; }
+fi
+# wait for every node over its published HTTP port; cluster nodes must also reach Keeper
+http=$(jqr "['ports']['http_base']"); i=0
+for n in $(cat "$state/nodes"); do
+  ok=0
+  for t in $(seq 1 180); do
+    q="SELECT 1"; [ "$(jqr "['dialect']")" = "replicated" ] && q="SELECT count() FROM system.zookeeper WHERE path = '/'"
+    if curl -sf "http://127.0.0.1:$((http + i))/" --data-binary "$q" >/dev/null 2>&1; then ok=1; break; fi
+    sleep 1
+  done
+  [ "$ok" = 1 ] || { echo "up: node $n not ready" >&2; exit 1; }
+  i=$((i + 1))
+done
+first=$(head -1 "$state/nodes")
+curl -sf "http://127.0.0.1:$http/" --data-binary "SELECT 'up', version(), (SELECT count() FROM system.clusters WHERE cluster = 'ch_eval') FORMAT TSV"
+echo "native port: $port (bench resolves the DSN from the manifest; see targets/README.md)"

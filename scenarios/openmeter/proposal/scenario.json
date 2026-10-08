@@ -1,0 +1,6 @@
+{
+  "workload": "openmeter",
+  "database": "openmeter",
+  "tables": ["proposal_events"],
+  "generator": "openmeter-events"
+}

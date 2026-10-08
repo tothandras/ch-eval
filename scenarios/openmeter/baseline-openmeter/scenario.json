@@ -1,0 +1,6 @@
+{
+  "workload": "openmeter",
+  "database": "openmeter",
+  "tables": ["baseline_openmeter_events"],
+  "generator": "openmeter-events"
+}
