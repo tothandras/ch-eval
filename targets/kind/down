@@ -5,6 +5,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 platform="${1:?usage: down <platform> <tier>}"; tier="${2:?usage: down <platform> <tier>}"
 cluster="cheval-$platform"
+for bin in kind kubectl docker; do command -v "$bin" >/dev/null || { echo "$(basename "$0"): $bin not on PATH" >&2; exit 2; }; done
 "$ROOT/targets/kind/forward" "$platform" "$tier" stop
 kind delete cluster --name "$cluster" >/dev/null 2>&1 || true
 if kind get clusters 2>/dev/null | grep -qx "$cluster" || docker ps -a --format '{{.Names}}' | grep -qx "$cluster-control-plane"; then

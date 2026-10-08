@@ -8,6 +8,7 @@ platform="${1:?usage: up <platform> <tier>}"; tier="${2:?usage: up <platform> <t
 man="$ROOT/targets/$platform/$tier.json"
 jq_() { python3 -c "import json,sys; print(json.load(open('$man'))$1)"; }
 cluster="cheval-$platform"
+for bin in kind kubectl docker; do command -v "$bin" >/dev/null || { echo "$(basename "$0"): $bin not on PATH" >&2; exit 2; }; done
 state="$ROOT/targets/.state/kind-$platform-$tier"
 export KUBECONFIG="$state/kubeconfig"
 mkdir -p "$state"
