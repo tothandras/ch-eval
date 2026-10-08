@@ -6,11 +6,14 @@ Keep it accurate enough that a fresh agent can continue.
 
 ## Current state
 
-- **Phase:** 2 (local targets, migrations, generators, parity) in progress
-  on the owner's instruction "Continue with stages once the current
-  workstream is done". It stops before Phase 3: no paid resource is created
-  without the owner's approval and budget. The Phase 1 questions below are
-  still open; Phase 2 uses the documented defaults.
+- **Phase:** 2 (local targets, migrations, generators, parity) is complete,
+  apart from the kind 2×2 tier (see tasks.md 2.13). Work stops here, before
+  Phase 3: no paid resource is created without the owner's approval and
+  budget. The Phase 1 questions below are still open. Phase 2 used the
+  documented defaults.
+- **Owner decision pending:** whether to report the quorum + async-insert
+  LOGICAL_ERROR upstream
+  (`results/experiments/repro/quorum-async-logical-error-20261008.md`).
 - **AI Cost Management (internal workload):** brief received 2026-10-08,
   locally verified, deliverable written:
   `internal/ai-cost-management/REPORT.md`. Waiting for owner review.
@@ -265,6 +268,15 @@ performance (ADR-0005).
   | S4 | background Distributed inserts acknowledge before rows are queryable and queue while a shard is down; foreground inserts fail |
   | R6 | `ON CLUSTER` and Replicated-database DDL both time out (159) with a replica down and apply on its return |
   | R3 | quorum loss makes tables read-only (242) while SELECT works; inserts recover in 6–9 s |
+  | E6 (kind) | raising `replicasCount` from 2 to 3: the operator registered the host, created the table on it with no DDL from us, and the replica fetched 1M rows, all about 83 s after the patch |
+  | E5 (kind) | a pod memory-limit change rolled the 3 hosts one at a time; 140 s to `Completed` |
+- **kind (operator 0.27.4).** Both builds passed the migration lifecycle, all
+  50 probes and a consistency smoke. altinity kind also passed parity against
+  single (`results/parity/local-sharded-kind-*.md`). The upstream kind parity
+  run is in progress.
+- **s3 storage variants.** `local-cluster-s3-cow` (`cache_on_write_operations=1`,
+  Cloud's default) and `local-cluster-s3-smallcache` (256 MiB) both passed
+  parity and all 50 probes.
 - **CI.** GitHub Actions is green, including the Docker smoke job with the
   parity gate and collector-path parity.
 
@@ -279,10 +291,17 @@ performance (ADR-0005).
   need a local `IfNotPresent` copy, and that is the only deviation.
 - The forked harness counted untracked `results/` as dirty. This is fixed.
 - Quorum inserts are rejected with async inserts. Through SQL `VALUES` the error
-  is 2. Through clickhouse-go's native batch path, 26.3 raises
-  **LOGICAL_ERROR 49** ("Should be checked earlier"), which looks like the
-  validation being bypassed on that path. It is worth reporting upstream after a
-  minimal reproduction.
+  is 2. When the data travels as a block (any `FORMAT` clause, and
+  every clickhouse-go batch insert), both 26.3.33 builds raise
+  **LOGICAL_ERROR 49** ("Should be checked earlier"), so the validation is
+  bypassed on that path. A minimal reproduction is in
+  `experiments/repro/quorum-async-logical-error.sh`, with output in
+  `results/experiments/repro/`. It has not been reported upstream; the owner
+  decides.
+- `kind load docker-image` fails on single-platform pulls (`--all-platforms`
+  digest error), so `targets/kind/up` imports with `docker save | ctr import`.
+  remote_servers can lag a CHI that has reached `Completed`, so `up` also waits
+  until `system.clusters` lists every host.
 - Local compose tiers filled the sandbox disk through `information`-level
   Docker logs. They now log at `warning`, rotate logs, and keep only the system
   logs the harness reads.
@@ -357,11 +376,9 @@ performance (ADR-0005).
 
 ## Next
 
-- **Remaining Phase 2 items** (`tasks.md` §2):
-  - the kind runs (migrations, parity, probes, R3/E5/E6);
-  - experiments S3/S4/R6 on compose;
-  - the replica-consistency smoke run;
-  - the s3 cache-variant runs.
+- **Phase 2 leftover:** kind 2×2 (tasks.md 2.13) did not fit the sandbox's
+  memory. Compose 2×2 already covers sharded DDL and parity; run kind 2×2 on a
+  larger host if the operator's sharded path itself needs evidence.
 - **Phase 3 (paid) needs the owner's go-ahead:** budget, region, shape, and
   the open questions above. A spend estimate is presented before anything is
   created.
@@ -405,8 +422,10 @@ Then add `/home/user/tools/ch` to `PATH`.
       kind: KubeletConfiguration
       failCgroupV1: false
   ```
-- Containers cannot reach the host proxy, so load images into kind with
-  `kind load docker-image`.
+- Containers cannot reach the host proxy, so images are pulled on the host and
+  imported into the node with `docker save | docker exec -i <node> ctr -n k8s.io images import -`.
+  `kind load docker-image` fails on single-platform pulls. `targets/kind/up`
+  does all of this.
 
 **OpenSpec.** Install with
 `npm install --no-save @fission-ai/openspec@1.4.0` (delete any stray
@@ -414,3 +433,18 @@ Then add `/home/user/tools/ch` to `PATH`.
 
 **Research clones** (not committed) live in `/home/user/research/`:
 `openmeter`, `otelcol-contrib`, `hyperdx`, `clickhouse-docs`.
+
+**Disk.** The sandbox disk is small. ClickHouse at `information` log level
+filled it twice through Docker's json logs, which left files truncated to zero
+bytes. `targets/compose/gen.py` now logs at `warning` with rotation. Prune
+unused images and volumes before large runs, and check `df -h /`.
+
+**Evidence runs.** Run evidence from a clean worktree so `--require-clean`
+and the harness commit stay valid while the main tree is edited:
+```bash
+git worktree add --detach /home/user/ch-eval-run HEAD
+ln -s /home/user/ch-eval/targets/.state /home/user/ch-eval-run/targets/.state
+```
+Then copy `results/` back. Do not use `pkill -f` or `pgrep -f` with patterns
+that also appear in the calling shell's command line, because they match the
+shell itself.
