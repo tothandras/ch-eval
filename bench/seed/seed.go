@@ -45,25 +45,25 @@ type EventType struct {
 // baseline-openmeter-scenario cardinality requirement: ≥1 namespace,
 // ≥2 types, ≥100 subjects, ≥3 days of time spread.
 type Config struct {
-	Table      string        // Target table name (e.g. data_as_json_events); REQUIRED.
-	Namespace  string        // Primary namespace; the default {namespace} param binds to it.
-	Namespaces int           // Total namespaces to spread rows across; ≤1 means single-namespace (just Namespace).
+	Table      string // Target table name (e.g. data_as_json_events); REQUIRED.
+	Namespace  string // Primary namespace; the default {namespace} param binds to it.
+	Namespaces int    // Total namespaces to spread rows across; ≤1 means single-namespace (just Namespace).
 	// NamespaceSkew, when > 1, draws namespaces from a Zipf distribution with this
 	// exponent (the primary namespace is the heaviest tenant) instead of uniformly.
 	// It only changes the last draw of each event, so every other field is
 	// identical to the uniform stream; 0 keeps the uniform default.
 	NamespaceSkew float64
-	Types      []string      // Type names; Types[0] is the baseline type the default {type} param binds to.
-	Subjects   int           // Subject pool size; ≥100 for baseline.
-	Group1     []string      // Categorical group1 values (baseline api_request payload).
-	Group2     []string      // Categorical group2 values (baseline api_request payload).
-	EventTypes []EventType   // Weighted catalog of event types; each emits its own data shape.
-	Rows       int           // Count of events to insert.
-	StartRow   int           // First generator index; Run emits [StartRow, StartRow+Rows). Lets N workers seed disjoint ranges in parallel with full determinism.
-	TimeSpan   time.Duration // Time window the events span, ending at TimeEnd.
-	TimeEnd    time.Time     // Newest event time; events are uniform in [TimeEnd-TimeSpan, TimeEnd).
-	Seed       uint64        // RNG seed for reproducibility.
-	BatchSize  int           // Rows per batch insert; defaults to 10k.
+	Types         []string      // Type names; Types[0] is the baseline type the default {type} param binds to.
+	Subjects      int           // Subject pool size; ≥100 for baseline.
+	Group1        []string      // Categorical group1 values (baseline api_request payload).
+	Group2        []string      // Categorical group2 values (baseline api_request payload).
+	EventTypes    []EventType   // Weighted catalog of event types; each emits its own data shape.
+	Rows          int           // Count of events to insert.
+	StartRow      int           // First generator index; Run emits [StartRow, StartRow+Rows). Lets N workers seed disjoint ranges in parallel with full determinism.
+	TimeSpan      time.Duration // Time window the events span, ending at TimeEnd.
+	TimeEnd       time.Time     // Newest event time; events are uniform in [TimeEnd-TimeSpan, TimeEnd).
+	Seed          uint64        // RNG seed for reproducibility.
+	BatchSize     int           // Rows per batch insert; defaults to 10k.
 
 	// AsyncInsert sets the async_insert SETTING on each batch.
 	AsyncInsert bool

@@ -62,9 +62,9 @@ type DiskRow struct {
 
 // CacheRow is the filesystem cache's live state (system.filesystem_cache totals).
 type CacheRow struct {
-	CachePath  string `json:"cache_path"`
-	Segments   uint64 `json:"segments"`
-	Bytes      uint64 `json:"bytes"`
+	CachePath string `json:"cache_path"`
+	Segments  uint64 `json:"segments"`
+	Bytes     uint64 `json:"bytes"`
 }
 
 // Changed holds settings that differ from defaults, per scope.
