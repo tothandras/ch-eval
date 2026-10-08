@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Generated report
-`REPORT.md` SHALL be produced by `bench report` from `results/` and the feature-matrix data. It SHALL NOT contain hand-typed numbers. It SHALL contain, in order: OpenMeter design-decision callouts (any probed or measured difference that changes an OpenMeter design decision), an executive summary, a verdict per workload, feature-matrix highlights, a cost comparison with utilization crossover points, caveats, and open questions.
+`REPORT.md` SHALL be produced by `bench report` from `results/` and the feature-matrix data. It SHALL NOT contain hand-typed numbers. It SHALL contain, in order: OpenMeter design-decision callouts (any probed or measured difference that changes an OpenMeter design decision), an executive summary, a verdict per workload, feature-matrix highlights, a replication and sharding section (self-managed topology recommendation), a compute/data separation section, a scaling and rightsizing section (smallest compliant shapes, scaling behaviour, storage headroom), a cost comparison with utilization and load-profile crossover points, caveats, and open questions.
 
 #### Scenario: Number provenance
 - **WHEN** a number appears in `REPORT.md`

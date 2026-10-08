@@ -7,7 +7,8 @@
 - [x] 1.5 Local feasibility: Docker images run; kind works with the sandbox patches; the unchanged harness runs on both 26.3 builds with digests 30/30 and 34/34
 - [x] 1.6 Draft `docs/feature-matrix.md` with cited hypotheses and planned probes
 - [x] 1.7 Write this proposal, design, delta specs, ADRs 0001–0005, PROGRESS.md
-- [ ] 1.8 Owner review: budget, region, shape, `upstream-cloudver` control, open questions in PROGRESS.md
+- [x] 1.8 Owner additions folded in: replication and sharding (D13), compute/data separation (D14), on-demand scaling and rightsizing (D15); feature-matrix sections 9–11 drafted with citations
+- [ ] 1.9 Owner review: budget, region, shape, `upstream-cloudver` control, open questions in PROGRESS.md
 
 ## 2. Phase 2: local targets, migrations, generators, parity green
 
@@ -23,6 +24,10 @@
 - [ ] 2.10 Cross-target `bench compare` with parity gate; local parity green for every workload and scenario on altinity vs upstream-oss
 - [ ] 2.11 CI workflow: lint, unit tests, `openspec validate`, migration tests, smoke run on altinity and upstream-oss (note: 10 forked files are not gofmt-clean; format them in a separate no-behaviour-change commit before gofmt becomes a gate)
 - [ ] 2.12 `replica-consistency` experiment implemented and smoke-tested on local-cluster and kind (no conclusions)
+- [ ] 2.13 Sharded topologies: compose `local-cluster` 2x2 profile and kind CHI 2x2; `shardedTable` migration helper; digest parity 2x2 vs 1x2 for openmeter
+- [ ] 2.14 Opt-in Zipf namespace distribution in the generator (appended draw; default stream byte-identical, proven by test)
+- [ ] 2.15 Local correctness experiments: S3 (unavailable shard: default vs `skip_unavailable_shards`), S4 (Distributed insert modes, time-to-queryable), R3 (Keeper quorum loss on kind), R6 (ON CLUSTER with a replica down), E5/E6 (operator vertical change, add replica) at small scale
+- [ ] 2.16 Self-managed `s3` storage mode locally (S3 emulator + filesystem cache); cache-size cap knob for C2; locality metadata capture
 
 ## 3. Phase 3: OpenMeter cross-target perf (paid; STOP before creating resources)
 
@@ -32,6 +37,8 @@
 - [ ] 3.4 10M perf runs (`--repeat 3`, warm and cold) for both scenarios × cloud, altinity(ebs), altinity(s3), upstream-oss(ebs) [+ upstream-cloudver]; parity gate
 - [ ] 3.5 Online-change migrations measured per target
 - [ ] 3.6 replica-consistency on cloud and altinity (and upstream-oss)
+- [ ] 3.7 Topology sweep (paid, separate approval): altinity `1x2` / `1x4` (parallel replicas) / `2x2` vs cloud at matched total vCPU; S2 shard pruning; R4 replica rebuild at 100M; R5 storage per replica
+- [ ] 3.8 Locality (D14): cold/warm and window sweep on cloud vs `ebs` vs `s3`; cache-size cap sweep on `s3`; write path and S3 requests per 1M events; optional warehouse isolation (C7)
 
 ## 4. Phase 4: OTel traces
 
@@ -57,6 +64,9 @@
 - [ ] 6.7 Backup/restore at 100M plus cross-target portability (cloud → self-managed and back)
 - [ ] 6.8 Security and multi-tenancy probes; client-compatibility probes
 - [ ] 6.9 Operational-burden write-up with evidence
+- [ ] 6.10 Scaling (D15): Cloud load-step autoscaling (E1), scale-out (E2), idle/resume (E3), scheduled scaling probe (E4); self-managed vertical roll (E5), add replica (E6), add shard (E7); EBS online expansion (E10); merge and mutation headroom (E11)
+- [ ] 6.11 Rightsizing sweep (E13) per workload: Cloud 8/16/32 GiB vs self-managed 2/4/8 vCPU pods at the declared load and SLO; storage cost per retention (E14)
+- [ ] 6.12 Load-profile cost model and crossovers (E15), feeding the verdict flip conditions
 
 ## 7. Phase 7: report
 

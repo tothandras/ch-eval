@@ -66,6 +66,31 @@ is either measured or explicitly labelled "assessed, not measured".
   with the ClickHouse exporter (`create_schema: false`). The existing
   OpenMeter seeder is reused unchanged.
 
+**Owner additions (2026-10-08): topology, locality, elasticity**
+- **Replication and sharding on self-managed (design D13).**
+  - Topologies `1x2`, `1x4` and `2x2`.
+  - Questions: stale reads and stale-replica fallback, quorum cost, Keeper
+    quorum loss, replica rebuild, storage amplification and DDL propagation.
+  - For sharding: digest parity of sharded vs unsharded, shard pruning by
+    namespace, partial results when a shard is unavailable, Distributed insert
+    queue visibility, resharding without automatic rebalancing, and when
+    sharding becomes necessary.
+  - A `shardedTable` migration helper keeps query files unchanged.
+- **Compute/data separation vs colocation (design D14).**
+  - Cloud's separated storage vs self-managed EBS (colocated) and S3-backed
+    MergeTree (self-separated).
+  - Measured: cold vs warm reads, working set vs cache size, write path and
+    merges, warm-up after topology changes, storage copies × price, and
+    optionally warehouse isolation.
+- **On-demand scaling and rightsizing (design D15).**
+  - Cloud: vertical autoscaling step response, horizontal scale-out,
+    idle/resume, scheduled scaling.
+  - Self-managed: vertical (rolling restart), add replica, add shard.
+  - Storage: Cloud automatic; EBS online expansion, merge and mutation
+    headroom; S3-backed.
+  - Rightsizing: the smallest SLO-compliant shape per workload and target, and
+    a load-profile cost model that computes crossover points.
+
 **Feature matrix and cost**
 - **Feature probes.** `bench probe` runs SQL and Go probes per target.
   `docs/feature-matrix.md` is generated from `docs/feature-matrix.yaml` plus
@@ -103,6 +128,9 @@ is either measured or explicitly labelled "assessed, not measured".
 - `cross-target-comparison`: results layout per target, cross-target compare, and the digest parity gate.
 - `feature-probes`: probe format, probe runner, and the generated feature matrix.
 - `evaluation-report`: generated `REPORT.md` with per-workload verdicts and flip conditions.
+- `replication-sharding`: self-managed replication and sharding topologies, migration templating for sharded tables, and the R1–R6 / S1–S6 experiments.
+- `storage-locality`: compute/data separation (Cloud) vs colocation (self-managed EBS) vs self-managed S3-backed storage, experiments C1–C7.
+- `elastic-scaling`: on-demand compute and storage scaling experiments (E1–E12) and rightsizing with load-profile cost modelling (E13–E15).
 
 ### Modified Capabilities
 - `scenario-format`: scenarios nest under a workload (`scenarios/<workload>/<variant>/`). `init.sql` becomes an `init/` migration set. Per-workload parameter providers replace the fixed v1 parameter set for non-OpenMeter workloads.

@@ -63,14 +63,27 @@ Facts that shape this design. Sources are in `docs/research/`.
   reconciled against real bills.
 - `REPORT.md` generated from results, with a recommendation per workload and
   the conditions under which it flips.
+- Owner additions on 2026-10-08:
+  - **Replication and sharding on self-managed (D13).** What it costs and
+    which correctness risks it carries, measured, including the
+    sharding-related risks in the owner's SharedMergeTree analysis.
+  - **Compute/data separation vs colocation (D14).** Cloud's separated compute
+    and object storage against self-managed local disks and S3-backed
+    MergeTree.
+  - **On-demand scaling and rightsizing (D15).** For compute and for storage,
+    on both platforms.
 
 **Non-Goals:**
 - **Drawing performance or cost conclusions from local tiers.** Compose and
   kind are for correctness, parity and smoke tests only, and the report
   generator enforces this.
-- **Sharded topologies.** All perf topologies are 1 shard × N replicas. The
-  user research's sharding risks are discussed, not measured, and labelled
-  "assessed, not measured".
+- **Sharding Cloud.** Cloud scales by replicas over shared storage and is not
+  sharded here. Sharding is evaluated as a self-managed design option (D13),
+  and the comparison is Cloud's unsharded scale-out against self-managed
+  sharded and unsharded topologies.
+- **More than 2 shards on paid tiers.** 2 shards is enough to expose routing,
+  completeness and rebalancing behaviour. Larger shard counts are assessed,
+  not measured.
 - **Re-litigating the `om_events` design.** The `proposal` recommendation is an
   input. If a finding contradicts it, work stops and the owner is asked.
 - **Altinity Antalya** beyond a feature-matrix row.
@@ -379,6 +392,133 @@ not eyeballed.
 - GitHub runners use cgroup v2, so the sandbox's kind patches are guarded by
   detection.
 
+### D13. Replication and sharding on self-managed (owner addition)
+
+**Why.** On Cloud, scaling out means adding replicas over one shared copy of
+the data. On self-managed, scaling out means more replicas (each a full copy)
+or more shards (a partitioned copy behind a `Distributed` table). Each choice
+carries operational and correctness consequences that OpenMeter would own. The
+owner's analysis names specific sharding risks: shard coverage, the
+Distributed insert queue, partial results, and resharding. They are measured
+here, not assumed.
+
+**Topologies (self-managed, same image per build)**
+
+| ID | Shards × replicas | Role |
+| --- | --- | --- |
+| `1x2` | 1 × 2 | Baseline, HA, unsharded |
+| `1x4` | 1 × 4 | Scale out by replicas, optionally with parallel replicas |
+| `2x2` | 2 × 2 | Sharded: `Distributed` over `ReplicatedMergeTree`, `internal_replication=true` |
+
+Local tiers run `1x2` and `2x2` for correctness (compose `local-cluster` and
+kind). Paid tiers run all three at matched total vCPU, against Cloud at the
+same replica count.
+
+**Migration templating.** A `shardedTable` helper renders, for sharded
+topologies:
+- a local table `<name>_local`, created `ON CLUSTER` with
+  `ReplicatedMergeTree`;
+- a `Distributed` table `<name>` over it, with a declared sharding key.
+
+Queries keep addressing `<name>`, so query files stay byte-identical. On
+unsharded dialects the helper renders the plain table. For OpenMeter the
+sharding-key candidates are:
+- `cityHash64(namespace)`: tenant co-location, allowing pruning with
+  `optimize_skip_unused_shards`;
+- `cityHash64(id)` or `rand()`: even spread, with fan-out for every query.
+
+A skewed multi-tenant dataset is needed: an optional Zipf namespace
+distribution in the generator. It is opt-in and appended after existing
+draws, so default streams stay byte-identical.
+
+**Questions, each answered by a measurement or a labelled assessment**
+
+Replication
+
+| ID | Question | Measurement |
+| --- | --- | --- |
+| R1 | How stale can reads be, and how often? Does `Distributed` fall back to stale replicas by default? | Per policy, see D7. Also probe `fallback_to_stale_replicas_for_distributed_queries` and `max_replica_delay_for_distributed_queries`. |
+| R2 | What do quorum inserts cost? | Insert latency/throughput with `insert_quorum` = replica count vs the default |
+| R3 | What happens when Keeper loses quorum? | Measured on kind and paid: time until tables go read-only, the error the OpenMeter-style writer sees, and recovery time. Single Keeper node loss is expected to have no impact; verified. |
+| R4 | How long does replica loss and rebuild take? | Kill a replica pod (and, separately, its volume). Measure re-sync time to 100% of 100M rows and the latency impact on surviving replicas. |
+| R5 | How much is storage amplified? | Bytes per replica measured: EBS has N copies; S3 disks without zero-copy also have N copies; Cloud has one shared copy |
+| R6 | How does DDL propagate when a replica is down? | `ON CLUSTER` behaviour and DDL queue timeout vs the `Replicated` database engine |
+
+Sharding
+
+| ID | Question | Measurement |
+| --- | --- | --- |
+| S1 | Is the sharded result identical? | Digest parity for `2x2` vs `1x2` for every query is a gate |
+| S2 | What does sharding buy for queries? | Per-tenant queries with shard pruning vs fan-out; `2x2` vs `1x4` (parallel replicas) vs Cloud at the same total vCPU (paid) |
+| S3 | What happens when a shard is unavailable? | Default behaviour vs `skip_unavailable_shards=1`, which may return partial billable totals without an error; probe and experiment |
+| S4 | How does insert routing affect visibility? | Time-to-queryable for: Distributed with background queue (default), Distributed foreground (`distributed_foreground_insert=1`), and client-side direct-to-shard inserts; plus queue behaviour while a shard is down |
+| S5 | What does resharding cost? | Add a shard through the CHI. Measure operator schema creation, the absence of automatic rebalancing, and the time and cost of a rebalance by copy at 100M rows (measured on a smaller dataset locally, at 100M on paid if budget allows) |
+| S6 | When must you shard? | Derived from the D15 rightsizing sweep: the largest single-shard shape that meets the SLO, and the data or ingest volume at which it stops |
+
+**Reported as** a replication and sharding section in `REPORT.md` with a
+self-managed topology recommendation for OpenMeter. Any correctness risk
+measured here (partial results, stale fallback, decreasing totals) is a
+design callout.
+
+### D14. Compute/data separation (Cloud) vs colocation (self-managed) (owner addition)
+
+**Configurations compared**
+
+| Label | Target | Storage layout |
+| --- | --- | --- |
+| `separated` | `cloud` | SharedMergeTree on object storage, per-replica filesystem cache, plus the distributed cache if the service has it |
+| `colocated` | self-managed `ebs` | ReplicatedMergeTree on gp3. Data local to compute; OS page cache. |
+| `self-separated` | self-managed `s3` | ReplicatedMergeTree on an s3 disk with a local filesystem cache. Data remote, but metadata local per replica, so replicas are not stateless. |
+
+**Questions**
+
+| ID | Question | Measurement |
+| --- | --- | --- |
+| C1 | What do cold reads cost? | Per query class: latency and CPU cold vs warm. Cloud uses `SYSTEM DROP FILESYSTEM CACHE` + `enable_filesystem_cache=0`; EBS uses an OS page-cache drop on the node; s3 uses a filesystem-cache drop. Bytes read from object storage vs cache come from ProfileEvents. |
+| C2 | How does latency depend on working set vs cache size? | Query-window sweep (1h/24h/7d/30d) at 100M rows. On self-managed `s3`, also cap the filesystem cache at 25/50/100% of the table's compressed size. Plot cache hit ratio vs p95. Cloud's cache size is not configurable, so it is recorded from `system.filesystem_cache*` where readable. |
+| C3 | What changes on the write path? | Insert latency, time-to-queryable, merge throughput and merge CPU. Object-store request counts per 1M events (a cost line on self-managed `s3`; included in the price on Cloud). |
+| C4 | How long do caches take to warm after a topology change? | First-query latency curve after replica add, restart, upgrade and resume-from-idle, until steady state. Shared with D15. |
+| C5 | How does storage cost scale with replicas? | Measured bytes × price: one shared copy (Cloud) vs N copies (EBS) vs N copies (S3 without zero-copy). |
+| C6 | What is the failure blast radius? | Local disk loss: measured (R4). Object-store throttling or outage: assessed, not measured. |
+| C7 | Does compute-compute separation isolate workloads? | Optional Cloud experiment if budget allows: query p95 under heavy ingest, same warehouse vs a separate read-only warehouse. Otherwise assessed with citations. |
+
+**Reported as** a "compute/data separation" section. It states which
+OpenMeter and OTel query classes are sensitive to separation (cold-read
+penalty × how often they run cold), and what the `s3` self-managed mode does
+and does not reproduce of Cloud's model.
+
+### D15. On-demand scaling and rightsizing (owner addition)
+
+**Compute scaling (measured unless labelled)**
+
+| ID | Question | Measurement |
+| --- | --- | --- |
+| E1 | How does Cloud vertical autoscaling respond to a load step? | Idle → heavy step. Poll `CGroupMaxCPU`/memory per replica over time and measure: time to scale up, query errors or latency during the change, time to scale back down, and the compute units billed through the window (usage statement) |
+| E2 | How fast is Cloud horizontal scale-out? | `numReplicas` 2→3 via the API: time until the new replica serves queries, and its cold-cache latency curve (C4) |
+| E3 | How fast does Cloud resume from idle? | Time to first result and latency of the first N queries after idle; the idle floor billed |
+| E4 | How do scheduled scaling and scale-down behave on Cloud? | API probe of `scalingSchedule` and `replicaScaling`; assessed if the tier does not allow it |
+| E5 | What does self-managed vertical scaling cost? | Change the CHI pod resources: rolling-restart duration, failed queries and inserts during the roll, and per-replica downtime |
+| E6 | How long does adding a self-managed replica take? | `replicasCount` 2→3: operator schema creation, time to fetch 100M rows, and impact on existing replicas |
+| E7 | What does adding a self-managed shard involve? | Same as S5 |
+| E8 | Can self-managed autoscale? | Assessed: Kubernetes HPA does not fit stateful ClickHouse; only scheduled or manual scaling applies |
+
+**Storage scaling**
+
+| ID | Question | Measurement |
+| --- | --- | --- |
+| E9 | How does Cloud storage scale? | Automatic, billed per compressed TB-month (assessed and cited). Measured bytes per event drive the cost. |
+| E10 | How does self-managed EBS storage scale? | Online PVC expansion through the operator and EBS CSI: time and disruption, measured. The EBS modification cooldown and no-shrink rules are assessed and cited. |
+| E11 | How much disk headroom do merges and mutations need? | Peak disk use during merges and during the String→JSON migration, as a fraction of steady-state data size (measured). This sets the EBS provisioning factor. |
+| E12 | Is self-managed S3-backed storage elastic? | Measured bytes and requests; cited |
+
+**Rightsizing**
+
+| ID | Question | Measurement |
+| --- | --- | --- |
+| E13 | What is the smallest shape that meets the SLO? | Per workload, at a declared target load (ingest events/s + query mix QPS + p95 SLO per class, defined in `cells/`), sweep the replica size: Cloud 8/16/32 GiB per replica, self-managed 2/4/8 vCPU pods at the same 1:4 ratio. Report the smallest compliant shape per target. Cost comparisons in `REPORT.md` use each target's smallest compliant shape, not just identical shapes. |
+| E14 | What does storage really cost? | Measured bytes per event per replica × retention (OpenMeter 13 months, OTel 30 days by default; parameters) × headroom factor (E11) → $/month per target and storage mode |
+| E15 | Where do the costs cross? | A load-profile cost model: a parameterized diurnal/weekly curve. Cloud follows it using the autoscaling and idle behaviour measured in E1–E3; self-managed is provisioned for peak (plus optional scheduled scaling). Output: monthly cost per target and the crossover points (peak/average ratio, utilization, ops-hours) used by the verdict flip conditions. |
+
 ## Risks / Trade-offs
 
 **Fairness and comparability**
@@ -405,6 +545,21 @@ not eyeballed.
 - **Paid spend.** → Mitigation: per-run estimates before every paid run, a hard
   budget, run-id tags, teardown that is verified by API listing, and a
   `targets/*/down --verify` step that fails loudly.
+
+**Scope and spend from the owner additions (D13–D15)**
+- **More shapes, more spend.** Topology sweeps (`1x2`/`1x4`/`2x2`), shape
+  sweeps (3 sizes × 2 platforms) and scaling experiments multiply paid hours.
+  → Mitigation:
+  - Sweeps run on the OpenMeter workload first, at 10M rows. OTel workloads
+    reuse the shapes it identifies.
+  - Each sweep is estimated and approved separately.
+- **Cloud autoscaling cannot be controlled or observed internally.**
+  → Mitigation: treat it as a black box. Measure the externally visible signals
+  (per-replica cgroup limits over time, latency, errors, billed units), and
+  label the internals as assessed.
+- **Sharding needs non-default data.** → Mitigation: the opt-in Zipf
+  namespace distribution is appended after existing generator draws, so
+  default streams and existing digests stay unchanged.
 
 **Scope**
 - **OTel logs were added mid-flight.** → Mitigation: logs reuse the traces
