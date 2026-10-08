@@ -57,4 +57,4 @@ bench/results/run-*.log
 kubeconfig*
 # npm (openspec CLI installed via pnpm-lock; ignore stray npm lockfile)
 package-lock.json
-targets/.state/
+targets/.state
