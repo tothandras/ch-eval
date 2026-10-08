@@ -21,7 +21,7 @@
 - [ ] 2.8 OTel generators (traces, metrics, logs), deterministic with unit tests; direct-insert mappers for all variants
 - [ ] 2.9 Collector ingest path (compose service, `create_schema: false`) plus the path-parity test
 - [ ] 2.10 Cross-target `bench compare` with parity gate; local parity green for every workload and scenario on altinity vs upstream-oss
-- [ ] 2.11 CI workflow: lint, unit tests, `openspec validate`, migration tests, smoke run on altinity and upstream-oss
+- [ ] 2.11 CI workflow: lint, unit tests, `openspec validate`, migration tests, smoke run on altinity and upstream-oss (note: 10 forked files are not gofmt-clean; format them in a separate no-behaviour-change commit before gofmt becomes a gate)
 - [ ] 2.12 `replica-consistency` experiment implemented and smoke-tested on local-cluster and kind (no conclusions)
 
 ## 3. Phase 3: OpenMeter cross-target perf (paid; STOP before creating resources)
