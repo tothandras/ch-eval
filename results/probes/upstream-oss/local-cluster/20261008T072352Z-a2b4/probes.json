@@ -1,0 +1,596 @@
+{
+  "run_id": "20261008T072352Z-a2b4",
+  "target": "upstream-oss/local-cluster",
+  "platform": "upstream-oss",
+  "tier": "local-cluster",
+  "version": "26.3.33.24",
+  "harness_commit": "3dac905",
+  "started_at": "2026-10-08T07:23:52.675174269Z",
+  "results": [
+    {
+      "path": "probes/client/async_insert.go",
+      "rows": null,
+      "title": "clickhouse-go AsyncInsert(wait=true) makes rows visible on return (CL-03)",
+      "expect": "value:1",
+      "observed": {
+        "kind": "value",
+        "value": "1"
+      },
+      "pass": true,
+      "duration_ms": 65.548
+    },
+    {
+      "path": "probes/client/compression.go",
+      "rows": null,
+      "title": "lz4 and zstd native compression (CL-02)",
+      "expect": "value:lz4,zstd",
+      "observed": {
+        "kind": "value",
+        "value": "lz4,zstd"
+      },
+      "pass": true,
+      "duration_ms": 8.407
+    },
+    {
+      "path": "probes/client/json_insert.go",
+      "rows": null,
+      "title": "Batch insert of JSON text into a JSON column (CL-04)",
+      "expect": "value:3",
+      "observed": {
+        "kind": "value",
+        "value": "3"
+      },
+      "pass": true,
+      "duration_ms": 11.332
+    },
+    {
+      "path": "probes/client/protocols.go",
+      "rows": null,
+      "title": "Native and HTTP interfaces answer (CL-01)",
+      "expect": "value:native,http",
+      "observed": {
+        "kind": "value",
+        "value": "native,http"
+      },
+      "pass": true,
+      "duration_ms": 1.262
+    },
+    {
+      "path": "probes/control/restricted_statements.sql",
+      "rows": null,
+      "title": "SYSTEM STOP/START MERGES on a table (SM-02; unsupported on Cloud)",
+      "expect": "ok",
+      "observed": {
+        "kind": "ok"
+      },
+      "pass": true,
+      "duration_ms": 5.656
+    },
+    {
+      "path": "probes/control/server_settings.sql",
+      "rows": null,
+      "title": "Server configuration under operator control: SYSTEM RELOAD CONFIG (SM-01)",
+      "expect": "ok",
+      "observed": {
+        "kind": "ok"
+      },
+      "pass": true,
+      "duration_ms": 31.786
+    },
+    {
+      "path": "probes/control/udf.sql",
+      "rows": null,
+      "title": "SQL user-defined functions (SM-03; executable UDFs need server config and are assessed)",
+      "expect": "value:42",
+      "observed": {
+        "kind": "value",
+        "value": "42"
+      },
+      "pass": true,
+      "duration_ms": 4.738
+    },
+    {
+      "path": "probes/ingest/async_defaults.sql",
+      "rows": null,
+      "title": "async_insert, wait_for_async_insert and flush-timeout defaults (IN-01, IN-02)",
+      "expect": "value:true\ttrue\t200",
+      "observed": {
+        "kind": "value",
+        "value": "true\ttrue\t200"
+      },
+      "pass": true,
+      "duration_ms": 2.165
+    },
+    {
+      "path": "probes/ingest/dedup_plain_mergetree.sql",
+      "rows": null,
+      "title": "Plain MergeTree keeps a retried identical insert (non_replicated_deduplication_window = 0) (IN-04)",
+      "expect": "value:2",
+      "observed": {
+        "kind": "value",
+        "value": "2"
+      },
+      "pass": true,
+      "duration_ms": 12.757
+    },
+    {
+      "path": "probes/ingest/dedup_retry_async.sql",
+      "rows": null,
+      "title": "A retried identical async insert is deduplicated by default since 26.2 (IN-03)",
+      "expect": "value:1",
+      "observed": {
+        "kind": "value",
+        "value": "1"
+      },
+      "pass": true,
+      "duration_ms": 112.613
+    },
+    {
+      "path": "probes/ingest/dedup_retry_sync.sql",
+      "rows": null,
+      "title": "A retried identical synchronous insert is deduplicated on replicated storage (IN-03)",
+      "expect": "value:1",
+      "observed": {
+        "kind": "value",
+        "value": "1"
+      },
+      "pass": true,
+      "duration_ms": 34.079
+    },
+    {
+      "path": "probes/ingest/dedup_window.sql",
+      "rows": null,
+      "title": "Deduplication windows by engine family (IN-04)",
+      "expect": "value:['non_replicated_deduplication_window=0','replicated_deduplication_window=10000']",
+      "observed": {
+        "kind": "value",
+        "value": "['non_replicated_deduplication_window=0','replicated_deduplication_window=10000']"
+      },
+      "pass": true,
+      "duration_ms": 4.401
+    },
+    {
+      "path": "probes/locality/cache_introspection.sql",
+      "rows": null,
+      "title": "Filesystem-cache introspection readable (CS-02): rows in system.filesystem_cache, FilesystemCacheSize metric present",
+      "expect": "regex:^[0-9]+\t1$",
+      "observed": {
+        "kind": "value",
+        "value": "0\t1"
+      },
+      "pass": true,
+      "duration_ms": 5.834
+    },
+    {
+      "path": "probes/locality/cache_on_write.sql",
+      "rows": null,
+      "title": "Cache populated on write by default (CS-03)",
+      "expect": "value:0 || value:false",
+      "observed": {
+        "kind": "value",
+        "value": "0"
+      },
+      "pass": true,
+      "duration_ms": 3.749
+    },
+    {
+      "path": "probes/observability/capacity.sql",
+      "rows": null,
+      "title": "CGroupMaxCPU reported (OB-04); no row means absent (harness falls back to max_threads)",
+      "expect": "ok",
+      "observed": {
+        "kind": "ok",
+        "message": "no rows"
+      },
+      "pass": true,
+      "duration_ms": 2.708
+    },
+    {
+      "path": "probes/observability/flush_logs.sql",
+      "rows": null,
+      "title": "SYSTEM FLUSH LOGS ON CLUSTER (OB-05)",
+      "expect": "ok",
+      "observed": {
+        "kind": "ok"
+      },
+      "pass": true,
+      "duration_ms": 61.056
+    },
+    {
+      "path": "probes/observability/system_tables.sql",
+      "rows": null,
+      "title": "system.query_log, part_log and asynchronous_insert_log exist after a flush (OB-01..OB-03); log tables are created lazily",
+      "expect": "value:1\t1\t1",
+      "observed": {
+        "kind": "value",
+        "value": "1\t1\t1"
+      },
+      "pass": true,
+      "duration_ms": 15.107
+    },
+    {
+      "path": "probes/replication/load_balancing.sql",
+      "rows": null,
+      "title": "Replica selection defaults (RS-03); the operator's default profile overrides them",
+      "expect": "value:random\ttrue",
+      "observed": {
+        "kind": "value",
+        "value": "random\ttrue"
+      },
+      "pass": true,
+      "duration_ms": 2.065
+    },
+    {
+      "path": "probes/replication/sequential_consistency.sql",
+      "rows": null,
+      "title": "Settings select_sequential_consistency depends on (RS-04)",
+      "expect": "value:0\t0\ttrue",
+      "observed": {
+        "kind": "value",
+        "value": "0\t0\ttrue"
+      },
+      "pass": true,
+      "duration_ms": 1.866
+    },
+    {
+      "path": "probes/replication/stale_fallback.sql",
+      "rows": null,
+      "title": "Stale-replica fallback defaults for distributed reads (RS-02)",
+      "expect": "value:['fallback_to_stale_replicas_for_distributed_queries=1','max_replica_delay_for_distributed_queries=300']",
+      "observed": {
+        "kind": "value",
+        "value": "['fallback_to_stale_replicas_for_distributed_queries=1','max_replica_delay_for_distributed_queries=300']"
+      },
+      "pass": true,
+      "duration_ms": 4.82
+    },
+    {
+      "path": "probes/security/quota.sql",
+      "rows": null,
+      "title": "Quotas (SE-03)",
+      "expect": "value:1",
+      "observed": {
+        "kind": "value",
+        "value": "1"
+      },
+      "pass": true,
+      "duration_ms": 5.044
+    },
+    {
+      "path": "probes/security/rbac.sql",
+      "rows": null,
+      "title": "Roles and grants (SE-02)",
+      "expect": "value:1",
+      "observed": {
+        "kind": "value",
+        "value": "1"
+      },
+      "pass": true,
+      "duration_ms": 6.395
+    },
+    {
+      "path": "probes/security/rbac_grant_all.sql",
+      "rows": null,
+      "title": "GRANT ALL (SE-02; restricted on Cloud)",
+      "expect": "ok",
+      "observed": {
+        "kind": "ok"
+      },
+      "pass": true,
+      "duration_ms": 3.54
+    },
+    {
+      "path": "probes/security/row_policy.sql",
+      "rows": null,
+      "title": "Row policy restricts rows by namespace (SE-01)",
+      "expect": "value:1",
+      "observed": {
+        "kind": "value",
+        "value": "1"
+      },
+      "pass": true,
+      "duration_ms": 67.176
+    },
+    {
+      "path": "probes/security/tls.go",
+      "rows": null,
+      "title": "Transport security of the configured connection (CO-06)",
+      "expect": "ok",
+      "observed": {
+        "kind": "value",
+        "value": "plaintext"
+      },
+      "pass": true,
+      "duration_ms": 0.009
+    },
+    {
+      "path": "probes/security/workload.sql",
+      "rows": null,
+      "title": "Workload scheduling DDL (SE-04)",
+      "expect": "value:2",
+      "observed": {
+        "kind": "value",
+        "value": "2"
+      },
+      "pass": true,
+      "duration_ms": 9.465
+    },
+    {
+      "path": "probes/sharding/distributed_defaults.sql",
+      "rows": null,
+      "title": "Distributed insert and shard-pruning defaults (RS-08, RS-10)",
+      "expect": "value:false\tfalse\tfalse",
+      "observed": {
+        "kind": "value",
+        "value": "false\tfalse\tfalse"
+      },
+      "pass": true,
+      "duration_ms": 2.061
+    },
+    {
+      "path": "probes/sharding/unavailable_shard_default.sql",
+      "rows": null,
+      "title": "A query over a cluster with one unreachable shard fails by default (RS-09, skip_unavailable_shards = 0)",
+      "expect": "error",
+      "observed": {
+        "kind": "error",
+        "error_code": 279,
+        "message": "statement 1: All connection tries failed. Log: \n\nCode: 210. DB::NetException: Connection refused (127.0.0.1:1). (NETWORK_ERROR) (version 26.3.33.24 (official build))\n\n: While executing Remote"
+      },
+      "pass": true,
+      "duration_ms": 3.976
+    },
+    {
+      "path": "probes/sharding/unavailable_shard_skip.sql",
+      "rows": null,
+      "title": "skip_unavailable_shards = 1 silently returns the reachable shards' data (RS-09)",
+      "expect": "value:1",
+      "observed": {
+        "kind": "value",
+        "value": "1"
+      },
+      "pass": true,
+      "duration_ms": 5.821
+    },
+    {
+      "path": "probes/storage/database_engine.sql",
+      "rows": null,
+      "title": "Default database engine (ST-02)",
+      "expect": "value:Atomic",
+      "observed": {
+        "kind": "value",
+        "value": "Atomic"
+      },
+      "pass": true,
+      "duration_ms": 2.08
+    },
+    {
+      "path": "probes/storage/distributed_cache.sql",
+      "rows": null,
+      "title": "Distributed cache switches enabled by default (ST-09); 0 = none enabled",
+      "expect": "value:0",
+      "observed": {
+        "kind": "value",
+        "value": "0"
+      },
+      "pass": true,
+      "duration_ms": 5.899
+    },
+    {
+      "path": "probes/storage/drop_caches.sql",
+      "rows": null,
+      "title": "SYSTEM DROP MARK / UNCOMPRESSED / FILESYSTEM CACHE (ST-08)",
+      "expect": "ok",
+      "observed": {
+        "kind": "ok"
+      },
+      "pass": true,
+      "duration_ms": 2.715
+    },
+    {
+      "path": "probes/storage/engine_conversion.sql",
+      "rows": null,
+      "title": "Engine actually used for ENGINE = MergeTree (ST-01)",
+      "expect": "value:MergeTree",
+      "observed": {
+        "kind": "value",
+        "value": "MergeTree"
+      },
+      "pass": true,
+      "duration_ms": 8.401
+    },
+    {
+      "path": "probes/storage/fs_cache.sql",
+      "rows": null,
+      "title": "Filesystem-cache bypass setting accepted (ST-07)",
+      "expect": "value:1",
+      "observed": {
+        "kind": "value",
+        "value": "1"
+      },
+      "pass": true,
+      "duration_ms": 1.98
+    },
+    {
+      "path": "probes/storage/on_cluster.sql",
+      "rows": null,
+      "title": "ON CLUSTER DDL fans out to every node (ST-03)",
+      "expect": "value:2",
+      "observed": {
+        "kind": "value",
+        "value": "2"
+      },
+      "pass": true,
+      "duration_ms": 71.58
+    },
+    {
+      "path": "probes/storage/replicated_engine_conversion.sql",
+      "rows": null,
+      "title": "Engine actually used for ENGINE = ReplicatedMergeTree (ST-01)",
+      "expect": "value:ReplicatedMergeTree",
+      "observed": {
+        "kind": "value",
+        "value": "ReplicatedMergeTree"
+      },
+      "pass": true,
+      "duration_ms": 28.935
+    },
+    {
+      "path": "probes/storage/storage_policies.sql",
+      "rows": null,
+      "title": "Storage policies defined on the target (CS-01, ST-04); the s3 tier must expose s3_cached",
+      "expect": "ok",
+      "observed": {
+        "kind": "value",
+        "value": "default,s3_cached"
+      },
+      "pass": true,
+      "duration_ms": 3.043
+    },
+    {
+      "path": "probes/storage/zero_copy_setting.sql",
+      "rows": null,
+      "title": "Zero-copy replication default (ST-05)",
+      "expect": "value:0",
+      "observed": {
+        "kind": "value",
+        "value": "0"
+      },
+      "pass": true,
+      "duration_ms": 2.841
+    },
+    {
+      "path": "probes/version/json_type.sql",
+      "rows": null,
+      "title": "JSON type with typed subcolumn reads (VG-01)",
+      "expect": "value:42",
+      "observed": {
+        "kind": "value",
+        "value": "42"
+      },
+      "pass": true,
+      "duration_ms": 12.946
+    },
+    {
+      "path": "probes/version/lightweight_delete.sql",
+      "rows": null,
+      "title": "Lightweight DELETE (VG-04)",
+      "expect": "value:1",
+      "observed": {
+        "kind": "value",
+        "value": "1"
+      },
+      "pass": true,
+      "duration_ms": 76.111
+    },
+    {
+      "path": "probes/version/lightweight_update.sql",
+      "rows": null,
+      "title": "Lightweight UPDATE ... SET without extra settings (VG-05, beta in 26.x)",
+      "expect": "value:2 || error",
+      "observed": {
+        "kind": "value",
+        "value": "2"
+      },
+      "pass": true,
+      "duration_ms": 67.997
+    },
+    {
+      "path": "probes/version/lightweight_update_enabled.sql",
+      "rows": null,
+      "title": "Lightweight UPDATE with enable_lightweight_update = 1 (VG-05)",
+      "expect": "value:2",
+      "observed": {
+        "kind": "value",
+        "value": "2"
+      },
+      "pass": true,
+      "duration_ms": 70.093
+    },
+    {
+      "path": "probes/version/parallel_replicas.sql",
+      "rows": null,
+      "title": "Parallel replicas default (VG-07): enable_parallel_replicas",
+      "expect": "value:0",
+      "observed": {
+        "kind": "value",
+        "value": "0"
+      },
+      "pass": true,
+      "duration_ms": 5.024
+    },
+    {
+      "path": "probes/version/part_offset_projection.sql",
+      "rows": null,
+      "title": "_part_offset projection (VG-10)",
+      "expect": "value:1",
+      "observed": {
+        "kind": "value",
+        "value": "1"
+      },
+      "pass": true,
+      "duration_ms": 71.5
+    },
+    {
+      "path": "probes/version/projection_json.sql",
+      "rows": null,
+      "title": "Projection over a JSON subcolumn (VG-09; undocumented, the observation is the evidence)",
+      "expect": "value:1 || error",
+      "observed": {
+        "kind": "error",
+        "error_code": 44,
+        "message": "statement 1: Data types Variant/Dynamic are not allowed in GROUP BY keys, because it can lead to unexpected results. Consider using a subcolumn with a specific data type instead (for example 'column.Int64' or 'json.some.path.:Int64' if its a JSON path subcolumn) or casting this column to a specific data type. Se"
+      },
+      "pass": true,
+      "duration_ms": 1.562
+    },
+    {
+      "path": "probes/version/projection_lw_mutation.sql",
+      "rows": null,
+      "title": "Lightweight DELETE on a table with a projection (VG-10); default mode throws",
+      "expect": "error",
+      "observed": {
+        "kind": "error",
+        "error_code": 344,
+        "message": "statement 3: DELETE query is not allowed for table ch_eval_probe.plw_probe because as it has projections and setting lightweight_mutation_projection_mode is set to THROW. User should change lightweight_mutation_projection_mode OR drop all the projections manually before running the query"
+      },
+      "pass": true,
+      "duration_ms": 11.24
+    },
+    {
+      "path": "probes/version/query_condition_cache.sql",
+      "rows": null,
+      "title": "Query condition cache on by default (VG-06)",
+      "expect": "value:1 || value:true",
+      "observed": {
+        "kind": "value",
+        "value": "1"
+      },
+      "pass": true,
+      "duration_ms": 6.246
+    },
+    {
+      "path": "probes/version/refreshable_mv.sql",
+      "rows": null,
+      "title": "Refreshable materialized view (VG-08)",
+      "expect": "ok",
+      "observed": {
+        "kind": "ok"
+      },
+      "pass": true,
+      "duration_ms": 5.381
+    },
+    {
+      "path": "probes/version/text_index.sql",
+      "rows": null,
+      "title": "text (full-text) index, GA form (VG-03)",
+      "expect": "value:1",
+      "observed": {
+        "kind": "value",
+        "value": "1"
+      },
+      "pass": true,
+      "duration_ms": 74.049
+    }
+  ]
+}
