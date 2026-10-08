@@ -108,6 +108,43 @@ See `openspec/changes/cross-target-evaluation/design.md` D7. It is reported as
 a stale-read rate, lag percentiles, monotonicity violations per 10k reads, and
 the latency overhead of each consistency policy.
 
+`bench consistency` implements it.
+
+- **Writer.** One writer inserts fixed-size batches with a gap-free
+  `batch_seq`. A failed batch is retried with the same sequence number.
+- **Visibility poller.** It polls
+  `clusterAllReplicas(<cluster>, …)` grouped by `hostName()`. Batch k counts as
+  visible on a replica when every row of batches 1..k is there.
+- **Readers.** Each read goes to a randomly chosen node, as a load balancer
+  would route it:
+  - per-pod forwards on kind and compose;
+  - the service endpoint on Cloud.
+
+  A read is *stale* when its total is below the total acknowledged before it
+  started. A *violation* is a total lower than the same reader's previous read.
+- **Replica restart.** `--restart-node` restarts one replica at half time.
+
+Local runs show the shape of the behaviour. Lag and latency numbers come only
+from paid tiers.
+
+## Local correctness experiments
+
+`bench experiment S3|S4|R6|R3` (compose tiers) and
+`experiments/kind/e5-e6.sh` (kind) stop and start processes. They record
+outcomes as `ok`, `error:<code>` or `value:<v>` per step, with timings:
+
+| Experiment | What it does |
+| --- | --- |
+| S3 | Takes a whole shard down and compares the default with `skip_unavailable_shards=1` |
+| S4 | Measures insert acknowledgement against time-to-queryable for Distributed background, Distributed foreground and direct-to-shard inserts, plus queueing while a shard is down |
+| R6 | Runs `ON CLUSTER` DDL and Replicated-database DDL with a replica down, both at `distributed_ddl_task_timeout=10` |
+| R3 | Takes Keeper from 3/3 to 2/3 to 1/3 and back |
+| E6 | Lets the operator add a replica |
+| E5 | Lets the operator roll a pod-resource change |
+
+These experiments establish behaviour. Their timings come from a laptop-class
+sandbox and are not evidence for production.
+
 ## Known asymmetries (recorded, not corrected)
 
 - Cloud's hardware generation and noisy neighbours are unobservable.

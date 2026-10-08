@@ -665,6 +665,12 @@ sections:
       cloud: All SharedMergeTree inserts "are quorum inserts (written to shared storage)" *(h)*
       altinity / upstream-oss (26.3): 'One replica acknowledges; others fetch asynchronously: "recently inserted data appears on the other replicas with some latency" *(h)*'
       Source: '[replication](https://clickhouse.com/docs/engines/table-engines/mergetree-family/replication), [shared-merge-tree](https://clickhouse.com/docs/products/cloud/features/infrastructure/shared-merge-tree)'
+    observations:
+    - platforms:
+      - altinity
+      - upstream-oss
+      source: D7 `bench consistency`, `results/consistency/`
+      text: 'default policy on a 1×2 cluster: about 4–5% of load-balanced reads were stale and some totals went backwards; ack-to-visible lag p99 about 0.1 s steady, several seconds across a replica restart. Local tier, shape only.'
   - id: RS-02
     openmeter_relevant: true
     evidence: '`probes/replication/stale_fallback.sql` + R1'
@@ -696,6 +702,12 @@ sections:
       cloud: Available on SharedMergeTree *(h)*
       altinity / upstream-oss (26.3): Needs `insert_quorum` **and** `insert_quorum_parallel=0`. The default is `insert_quorum_parallel=1`. *(h)*
       Source: '[settings](https://clickhouse.com/docs/operations/settings/settings#select_sequential_consistency)'
+    observations:
+    - platforms:
+      - altinity
+      - upstream-oss
+      source: D7 `bench consistency`
+      text: '`insert_quorum` + `insert_quorum_parallel=0` + `select_sequential_consistency=1` gave 0 stale reads with sync inserts at about 4× the insert p50, and is rejected with async inserts (the 26.2+ default): code 2 through SQL `VALUES`, LOGICAL_ERROR 49 through the native batch path clickhouse-go uses. `SYSTEM SYNC REPLICA … LIGHTWEIGHT` before reads also removed stale reads.'
   - id: RS-05
     evidence: R3 (kind, paid)
     probes: []
@@ -704,6 +716,12 @@ sections:
       cloud: Managed by Cloud *(h)*
       altinity / upstream-oss (26.3): SELECT continues; INSERT throws; tables go read-only and recover automatically *(h)*
       Source: '[replication](https://clickhouse.com/docs/engines/table-engines/mergetree-family/replication)'
+    observations:
+    - platforms:
+      - altinity
+      - upstream-oss
+      source: R3, `results/experiments/R3/`
+      text: 'one of three Keepers lost: inserts fine. Quorum lost: inserts fail with 242 (table read-only), SELECT keeps working, `is_readonly=1`; inserts recover 6–9 s after Keeper returns (compose).'
   - id: RS-06
     evidence: R4 / E6
     probes: []
@@ -720,6 +738,12 @@ sections:
       cloud: Shared database engine *(h)*
       altinity / upstream-oss (26.3): '`ON CLUSTER` is eventually executed; the client times out after `distributed_ddl_task_timeout=180` s. The Replicated database became beta in 24.4; its tier at 26.3 is ❓ *(h)*'
       Source: '[distributed-ddl](https://clickhouse.com/docs/sql-reference/distributed-ddl)'
+    observations:
+    - platforms:
+      - altinity
+      - upstream-oss
+      source: R6, `results/experiments/R6/`
+      text: with a replica down both `ON CLUSTER` and a Replicated database return 159 at the DDL timeout; the restarted replica applies the queued task (under 1 s for `ON CLUSTER`, immediately for the Replicated database log).
   - id: RS-08
     openmeter_relevant: true
     evidence: S4 + `probes/sharding/distributed_defaults.sql`
@@ -730,6 +754,11 @@ sections:
       cloud: n/a
       altinity / upstream-oss (26.3): '`distributed_foreground_insert=0`: inserts are queued on local disk and sent in the background; "the inserted data might be lost" on a rough restart *(h)*'
       Source: '[distributed](https://clickhouse.com/docs/engines/table-engines/special/distributed)'
+    observations:
+    - platforms:
+      - altinity
+      source: S4, `results/experiments/S4/`
+      text: background Distributed inserts acknowledge before rows are queryable; with a shard down they are accepted and queued on the initiator's disk until it returns; foreground inserts fail with 279.
   - id: RS-09
     openmeter_relevant: true
     evidence: '`probes/sharding/unavailable_shard_default.sql` + S3 + `probes/sharding/unavailable_shard_skip.sql`'
@@ -741,6 +770,11 @@ sections:
       cloud: n/a
       altinity / upstream-oss (26.3): '`skip_unavailable_shards=0` throws (safe). With 1 it "returns a result based on partial data and does not report node availability issues" *(h)*'
       Source: '[settings](https://clickhouse.com/docs/operations/settings/settings#skip_unavailable_shards)'
+    observations:
+    - platforms:
+      - altinity
+      source: S3, `results/experiments/S3/`
+      text: 'a whole shard down: the default query fails with 279; `skip_unavailable_shards=1` returned 50,088 of 100,000 rows without an error.'
   - id: RS-10
     evidence: S2 + `probes/sharding/distributed_defaults.sql`
     probes:

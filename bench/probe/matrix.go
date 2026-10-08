@@ -33,6 +33,17 @@ type Row struct {
 	Evidence          string            `yaml:"evidence,omitempty"`
 	Probes            []string          `yaml:"probes,omitempty"`
 	Cells             map[string]string `yaml:"cells"`
+	// Observations are outcomes of experiments (not probes) that bear on the
+	// row. They are shown in the cells of the platforms they cover but do not
+	// clear the hypothesis marker.
+	Observations []Observed `yaml:"observations,omitempty"`
+}
+
+// Observed is one experiment outcome attached to a row.
+type Observed struct {
+	Platforms []string `yaml:"platforms"`
+	Source    string   `yaml:"source"` // experiment id and result path
+	Text      string   `yaml:"text"`
 }
 
 // LoadMatrix reads the YAML source of truth.
@@ -125,6 +136,27 @@ func isEvidenceColumn(c string) bool {
 // hypothesis marker is dropped only when every covered platform ran every probe
 // of the row.
 func renderCell(r Row, text string, platforms []string, results map[string]map[string]TargetResult) string {
+	text = renderProbes(r, text, platforms, results)
+	for _, o := range r.Observations {
+		if overlaps(o.Platforms, platforms) {
+			text += "<br>**Observed locally** (" + o.Source + "): " + o.Text
+		}
+	}
+	return text
+}
+
+func overlaps(a, b []string) bool {
+	for _, x := range a {
+		for _, y := range b {
+			if x == y {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func renderProbes(r Row, text string, platforms []string, results map[string]map[string]TargetResult) string {
 	if len(platforms) == 0 || len(r.Probes) == 0 {
 		return text
 	}
