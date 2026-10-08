@@ -44,7 +44,7 @@ func TestRenderReport(t *testing.T) {
 				Concurrency: 1,
 				CacheState:  "warm",
 				P50Sec:      0.007, P95Sec: 0.012, P99Sec: 0.041,
-				QPS:         600,
+				QPS: 600,
 				// CPU* nil → query_log unavailable
 				IndexPruning: &IndexPruning{
 					LiteralID:       "abc",
@@ -113,4 +113,3 @@ func TestRenderReportSeedingSkipped(t *testing.T) {
 		t.Errorf("missing empty-queries marker:\n%s", out)
 	}
 }
-

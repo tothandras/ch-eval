@@ -32,9 +32,9 @@ type Manifest struct {
 		VCPUPerReplica *float64 `json:"vcpu_per_replica"`
 		GiBPerReplica  *float64 `json:"gib_per_replica"`
 	} `json:"shape"`
-	Location   string `json:"location"`
-	DSNEnv     string `json:"dsn_env"`
-	Notes      string `json:"notes,omitempty"`
+	Location string `json:"location"`
+	DSNEnv   string `json:"dsn_env"`
+	Notes    string `json:"notes,omitempty"`
 	// Remaining fields are deployment-specific (ports, keeper image, memory).
 	Ports *struct {
 		NativeBase int `json:"native_base"`

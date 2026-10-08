@@ -7,13 +7,13 @@ import (
 
 // Accounting is the assembled collector output the attribution prices.
 type Accounting struct {
-	QueryLog accounting.QueryLogStats         `json:"query_log"`
-	Merges   accounting.MergeStats            `json:"merges"`
-	Async    *accounting.AsyncInsertStats     `json:"async,omitempty"`
-	Capacity accounting.Capacity              `json:"capacity"`
-	Storage  StorageTimeline                  `json:"storage"`
-	MeasureSeconds float64                    `json:"measure_seconds"`
-	EventsIngested int                        `json:"events_ingested"`
+	QueryLog       accounting.QueryLogStats     `json:"query_log"`
+	Merges         accounting.MergeStats        `json:"merges"`
+	Async          *accounting.AsyncInsertStats `json:"async,omitempty"`
+	Capacity       accounting.Capacity          `json:"capacity"`
+	Storage        StorageTimeline              `json:"storage"`
+	MeasureSeconds float64                      `json:"measure_seconds"`
+	EventsIngested int                          `json:"events_ingested"`
 }
 
 // StorageTimeline are the run's three storage snapshots.
@@ -39,10 +39,10 @@ type Attribution struct {
 	QueryPeakMem     ClassCache       `json:"query_peak_mem_bytes"`
 	TotalResultBytes float64          `json:"total_result_bytes"`
 
-	AvailableCPUSec float64 `json:"available_cpu_sec"`
+	AvailableCPUSec  float64 `json:"available_cpu_sec"`
 	AttributedCPUSec float64 `json:"attributed_cpu_sec"`
-	Coverage        float64 `json:"coverage"`
-	IdleCPUSec      float64 `json:"idle_cpu_sec"`
+	Coverage         float64 `json:"coverage"`
+	IdleCPUSec       float64 `json:"idle_cpu_sec"`
 
 	BytesPerEventSettled float64 `json:"bytes_per_event_settled"`
 }
@@ -124,11 +124,11 @@ type UnitCosts struct {
 		InsertShare float64 `json:"insert_share"`
 		MergeShare  float64 `json:"merge_share"`
 	} `json:"usd_per_1m_events"`
-	USDPer1KQueries map[string]map[string]ModePair `json:"usd_per_1k_queries"` // class -> cache -> $
-	BytesPerEventSettled        float64 `json:"bytes_per_event_settled"`
-	USDPer1MEventsMonthStorage  float64 `json:"usd_per_1m_events_month_storage"` // includes backup multiplier (estimate)
-	EgressUSDEstimate           float64 `json:"egress_usd_estimate"`             // result bytes x egress rate (estimate)
-	IdleFloorUSDPerServiceMonth float64 `json:"idle_floor_usd_per_service_month"`
+	USDPer1KQueries             map[string]map[string]ModePair `json:"usd_per_1k_queries"` // class -> cache -> $
+	BytesPerEventSettled        float64                        `json:"bytes_per_event_settled"`
+	USDPer1MEventsMonthStorage  float64                        `json:"usd_per_1m_events_month_storage"` // includes backup multiplier (estimate)
+	EgressUSDEstimate           float64                        `json:"egress_usd_estimate"`             // result bytes x egress rate (estimate)
+	IdleFloorUSDPerServiceMonth float64                        `json:"idle_floor_usd_per_service_month"`
 }
 
 // Costs is the priced result: both modes plus the unit-cost card.

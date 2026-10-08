@@ -16,10 +16,10 @@ import (
 // Percentiles are in seconds, matching clickhouse-benchmark's text output.
 // Throughput fields come from the per-host summary line.
 type BenchResult struct {
-	Name        string  `json:"name"`
-	Concurrency int     `json:"concurrency"`
-	Iterations  int     `json:"iterations"`
-	Error       string  `json:"error,omitempty"`
+	Name        string `json:"name"`
+	Concurrency int    `json:"concurrency"`
+	Iterations  int    `json:"iterations"`
+	Error       string `json:"error,omitempty"`
 
 	// Percentiles in seconds (clickhouse-benchmark reports to ms precision).
 	P0Sec    float64 `json:"p0_sec"`
@@ -38,10 +38,10 @@ type BenchResult struct {
 	P9999Sec float64 `json:"p99_99_sec"`
 
 	// Throughput from the per-host summary line.
-	QPS            float64 `json:"qps"`
-	RPS            float64 `json:"rps"`
-	MiBPerSec      float64 `json:"mib_per_sec"`
-	ResultRPS      float64 `json:"result_rps"`
+	QPS             float64 `json:"qps"`
+	RPS             float64 `json:"rps"`
+	MiBPerSec       float64 `json:"mib_per_sec"`
+	ResultRPS       float64 `json:"result_rps"`
 	ResultMiBPerSec float64 `json:"result_mib_per_sec"`
 
 	// CPU and memory from system.query_log, correlated via log_comment.
@@ -70,11 +70,11 @@ type BenchResult struct {
 // vs enabled, for a literal-id lookup. The ratio is the bloom filter's real,
 // diffable evidence (the query's wall-clock is not — see lookup_by_id.sql).
 type IndexPruning struct {
-	LiteralID         string `json:"literal_id"`
-	GranulesWithout   int    `json:"granules_without"` // use_skip_indexes=0
-	GranulesWith      int    `json:"granules_with"`    // index active
-	PartsWithout      int    `json:"parts_without"`
-	PartsWith         int    `json:"parts_with"`
+	LiteralID       string `json:"literal_id"`
+	GranulesWithout int    `json:"granules_without"` // use_skip_indexes=0
+	GranulesWith    int    `json:"granules_with"`    // index active
+	PartsWithout    int    `json:"parts_without"`
+	PartsWith       int    `json:"parts_with"`
 }
 
 // EnsureBinary checks that `clickhouse-benchmark` is on PATH.

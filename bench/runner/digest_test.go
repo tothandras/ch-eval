@@ -13,8 +13,8 @@ func TestNormalizeCellNullableEqualsBare(t *testing.T) {
 	}
 
 	f := 1.234567891
-	bf := normalizeCell(f, true, false)   // bare float64
-	pf := normalizeCell(&f, true, false)  // *float64 (Nullable)
+	bf := normalizeCell(f, true, false)  // bare float64
+	pf := normalizeCell(&f, true, false) // *float64 (Nullable)
 	if bf != pf {
 		t.Fatalf("bare float %q != pointer float %q", bf, pf)
 	}

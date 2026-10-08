@@ -36,8 +36,8 @@ import (
 // BuildData's return into the data column. Weight controls the relative share
 // of rows assigned this type (selection is by cumulative weight).
 type EventType struct {
-	Name     string
-	Weight   int
+	Name      string
+	Weight    int
 	BuildData func(rng *rand.Rand) map[string]any
 }
 
@@ -45,20 +45,20 @@ type EventType struct {
 // baseline-openmeter-scenario cardinality requirement: ≥1 namespace,
 // ≥2 types, ≥100 subjects, ≥3 days of time spread.
 type Config struct {
-	Table     string        // Target table name (e.g. data_as_json_events); REQUIRED.
-	Namespace string        // Primary namespace; the default {namespace} param binds to it.
-	Namespaces int          // Total namespaces to spread rows across; ≤1 means single-namespace (just Namespace).
-	Types     []string      // Type names; Types[0] is the baseline type the default {type} param binds to.
-	Subjects  int           // Subject pool size; ≥100 for baseline.
-	Group1    []string      // Categorical group1 values (baseline api_request payload).
-	Group2    []string      // Categorical group2 values (baseline api_request payload).
-	EventTypes []EventType  // Weighted catalog of event types; each emits its own data shape.
-	Rows      int           // Count of events to insert.
-	StartRow  int           // First generator index; Run emits [StartRow, StartRow+Rows). Lets N workers seed disjoint ranges in parallel with full determinism.
-	TimeSpan  time.Duration // Time window the events span, ending at TimeEnd.
-	TimeEnd   time.Time     // Newest event time; events are uniform in [TimeEnd-TimeSpan, TimeEnd).
-	Seed      uint64        // RNG seed for reproducibility.
-	BatchSize int           // Rows per batch insert; defaults to 10k.
+	Table      string        // Target table name (e.g. data_as_json_events); REQUIRED.
+	Namespace  string        // Primary namespace; the default {namespace} param binds to it.
+	Namespaces int           // Total namespaces to spread rows across; ≤1 means single-namespace (just Namespace).
+	Types      []string      // Type names; Types[0] is the baseline type the default {type} param binds to.
+	Subjects   int           // Subject pool size; ≥100 for baseline.
+	Group1     []string      // Categorical group1 values (baseline api_request payload).
+	Group2     []string      // Categorical group2 values (baseline api_request payload).
+	EventTypes []EventType   // Weighted catalog of event types; each emits its own data shape.
+	Rows       int           // Count of events to insert.
+	StartRow   int           // First generator index; Run emits [StartRow, StartRow+Rows). Lets N workers seed disjoint ranges in parallel with full determinism.
+	TimeSpan   time.Duration // Time window the events span, ending at TimeEnd.
+	TimeEnd    time.Time     // Newest event time; events are uniform in [TimeEnd-TimeSpan, TimeEnd).
+	Seed       uint64        // RNG seed for reproducibility.
+	BatchSize  int           // Rows per batch insert; defaults to 10k.
 
 	// AsyncInsert sets the async_insert SETTING on each batch.
 	AsyncInsert bool
@@ -155,15 +155,15 @@ func idPool(salt uint64, n int) []string {
 // Bounded id pools for the Kong meters' dimensions (cardinality chosen to model
 // a multi-tenant gateway: a few control planes, dozens of routes/services, etc.).
 var (
-	cpPool      = idPool(1, 8)    // control planes
-	routePool   = idPool(2, 20)   // routes   (each maps 1:1 to a route_name)
-	servicePool = idPool(3, 8)    // services (each maps 1:1 to a service_name)
-	pluginPool  = idPool(4, 12)   // ai plugins
-	apiPool     = idPool(5, 30)   // apis
-	apiProdPool = idPool(6, 20)   // api products
-	apiVerPool  = idPool(7, 40)   // api product versions
-	appPool     = idPool(8, 50)   // applications
-	portalPool  = idPool(9, 6)    // portals
+	cpPool      = idPool(1, 8)  // control planes
+	routePool   = idPool(2, 20) // routes   (each maps 1:1 to a route_name)
+	servicePool = idPool(3, 8)  // services (each maps 1:1 to a service_name)
+	pluginPool  = idPool(4, 12) // ai plugins
+	apiPool     = idPool(5, 30) // apis
+	apiProdPool = idPool(6, 20) // api products
+	apiVerPool  = idPool(7, 40) // api product versions
+	appPool     = idPool(8, 50) // applications
+	portalPool  = idPool(9, 6)  // portals
 )
 
 // Friendly names are stable ATTRIBUTES of a route/service, not independent random
@@ -564,16 +564,16 @@ func Run(ctx context.Context, conn driver.Conn, cfg Config) (Result, error) {
 		for range batchSize {
 			row := gen.Next()
 			err := batch.Append(
-				row.Namespace,    // namespace
-				row.ID,           // id
-				row.Type,         // type
-				row.Subject,      // subject
-				"bench-seed",     // source
-				row.Time,         // time
-				row.Data,         // data (JSON text)
-				row.StoredAt,     // ingested_at (tracks stored_at)
-				row.StoredAt,     // stored_at
-				row.StoreRowID,   // store_row_id
+				row.Namespace,  // namespace
+				row.ID,         // id
+				row.Type,       // type
+				row.Subject,    // subject
+				"bench-seed",   // source
+				row.Time,       // time
+				row.Data,       // data (JSON text)
+				row.StoredAt,   // ingested_at (tracks stored_at)
+				row.StoredAt,   // stored_at
+				row.StoreRowID, // store_row_id
 			)
 			if err != nil {
 				return Result{}, fmt.Errorf("seed: batch.Append: %w", err)

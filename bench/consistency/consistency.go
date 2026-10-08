@@ -30,19 +30,19 @@ const (
 
 // Config is one experiment run.
 type Config struct {
-	Database   string
-	Table      string
-	Cluster    string // cluster for clusterAllReplicas and ON CLUSTER ("" on Cloud: no ON CLUSTER)
-	Cloud      bool   // SharedMergeTree target: no ON CLUSTER, Cloud converts the engine
-	Replicas   int
-	Policy     Policy
+	Database    string
+	Table       string
+	Cluster     string // cluster for clusterAllReplicas and ON CLUSTER ("" on Cloud: no ON CLUSTER)
+	Cloud       bool   // SharedMergeTree target: no ON CLUSTER, Cloud converts the engine
+	Replicas    int
+	Policy      Policy
 	AsyncInsert bool
-	Duration   time.Duration
-	BatchEvery time.Duration // one batch per interval
-	BatchRows  int
-	Readers    int
-	ReadEvery  time.Duration
-	PollEvery  time.Duration
+	Duration    time.Duration
+	BatchEvery  time.Duration // one batch per interval
+	BatchRows   int
+	Readers     int
+	ReadEvery   time.Duration
+	PollEvery   time.Duration
 	// RestartCmd, when set, runs at half time (for example a docker restart of
 	// one replica); the run measures behaviour across the restart.
 	RestartCmd string
@@ -51,26 +51,26 @@ type Config struct {
 
 // Result is the run outcome.
 type Result struct {
-	Config        Config                 `json:"config"`
-	StartedAt     time.Time              `json:"started_at"`
-	Batches       int                    `json:"batches_acked"`
-	InsertErrors  int                    `json:"insert_errors"`
-	InsertMs      Dist                   `json:"insert_latency_ms"`
-	LagMs         map[string]Dist        `json:"ack_to_visible_lag_ms"` // per replica host, plus "all"
-	NotVisible    map[string]int         `json:"batches_never_visible"` // per replica, by run end
-	Reads         int                    `json:"reads"`
-	ReadErrors    int                    `json:"read_errors"`
-	ReadMs        Dist                   `json:"read_latency_ms"`
-	Stale         int                    `json:"stale_reads"`
-	StaleRate     float64                `json:"stale_rate"`
-	Violations    int                    `json:"monotonicity_violations"`
-	ViolationsPer10k float64             `json:"violations_per_10k_reads"`
-	DeficitRows   Dist                   `json:"stale_deficit_rows"`
-	DeficitMs     Dist                   `json:"stale_deficit_ms"`
-	PerNodeReads  map[string]int         `json:"reads_per_node"`
-	RestartAt     *time.Time             `json:"restart_at,omitempty"`
-	RestartOutput string                 `json:"restart_output,omitempty"`
-	Notes         []string               `json:"notes,omitempty"`
+	Config           Config          `json:"config"`
+	StartedAt        time.Time       `json:"started_at"`
+	Batches          int             `json:"batches_acked"`
+	InsertErrors     int             `json:"insert_errors"`
+	InsertMs         Dist            `json:"insert_latency_ms"`
+	LagMs            map[string]Dist `json:"ack_to_visible_lag_ms"` // per replica host, plus "all"
+	NotVisible       map[string]int  `json:"batches_never_visible"` // per replica, by run end
+	Reads            int             `json:"reads"`
+	ReadErrors       int             `json:"read_errors"`
+	ReadMs           Dist            `json:"read_latency_ms"`
+	Stale            int             `json:"stale_reads"`
+	StaleRate        float64         `json:"stale_rate"`
+	Violations       int             `json:"monotonicity_violations"`
+	ViolationsPer10k float64         `json:"violations_per_10k_reads"`
+	DeficitRows      Dist            `json:"stale_deficit_rows"`
+	DeficitMs        Dist            `json:"stale_deficit_ms"`
+	PerNodeReads     map[string]int  `json:"reads_per_node"`
+	RestartAt        *time.Time      `json:"restart_at,omitempty"`
+	RestartOutput    string          `json:"restart_output,omitempty"`
+	Notes            []string        `json:"notes,omitempty"`
 }
 
 // Dist summarises a sample.

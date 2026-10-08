@@ -64,11 +64,11 @@ type Changed struct {
 
 // Limits are the compute limits the coverage denominator and shape check use.
 type Limits struct {
-	CGroupMaxCPU     float64 `json:"cgroup_max_cpu"`
-	MaxThreads       uint64  `json:"max_threads"`
-	OSMemoryTotal    uint64  `json:"os_memory_total"`
-	CGroupMemLimit   uint64  `json:"cgroup_memory_limit"`
-	MaxServerMemory  uint64  `json:"max_server_memory_usage"`
+	CGroupMaxCPU    float64 `json:"cgroup_max_cpu"`
+	MaxThreads      uint64  `json:"max_threads"`
+	OSMemoryTotal   uint64  `json:"os_memory_total"`
+	CGroupMemLimit  uint64  `json:"cgroup_memory_limit"`
+	MaxServerMemory uint64  `json:"max_server_memory_usage"`
 }
 
 // Client describes where the harness ran.
@@ -85,7 +85,9 @@ func Capture(ctx context.Context, conn driver.Conn, m Manifest, dsnSource, harne
 	md := Metadata{CapturedAt: time.Now().UTC(), Manifest: m, DSNSource: dsnSource,
 		Build: map[string]string{}, Macros: map[string]string{},
 		Changed: Changed{Session: map[string]string{}, MergeTree: map[string]string{}, Server: map[string]string{}}}
-	errf := func(what string, err error) { md.CaptureErrs = append(md.CaptureErrs, fmt.Sprintf("%s: %v", what, err)) }
+	errf := func(what string, err error) {
+		md.CaptureErrs = append(md.CaptureErrs, fmt.Sprintf("%s: %v", what, err))
+	}
 
 	if err := conn.QueryRow(ctx, "SELECT version()").Scan(&md.Version); err != nil {
 		errf("version", err)

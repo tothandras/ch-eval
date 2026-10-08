@@ -59,10 +59,10 @@ type Run struct {
 // whose Window matches — otherwise the events differ (e.g. unpinned TimeEnd
 // skew) and a digest mismatch would be a false alarm, not a design difference.
 type ValueParity struct {
-	From    string                 `json:"from"`    // resolved query window start (rendered literal, no quotes)
-	To      string                 `json:"to"`      // resolved query window end
+	From    string                 `json:"from"`               // resolved query window start (rendered literal, no quotes)
+	To      string                 `json:"to"`                 // resolved query window end
 	TimeEnd string                 `json:"time_end,omitempty"` // --time-end pin if set; "" = per-run time.Now()
-	Digests map[string]QueryDigest `json:"digests"` // query name → digest
+	Digests map[string]QueryDigest `json:"digests"`            // query name → digest
 }
 
 // QueryDigest is a normalized fingerprint of one query's result set: a hash over
@@ -133,9 +133,9 @@ func NewCPUProbe(conn driver.Conn) CPUProbe {
 			  FROM system.query_log
 			  WHERE log_comment = ? AND type = 'QueryFinish'`
 			var (
-				n                          uint64
-				osP50, osP95, osMax        float64
-				rtP50, rtP95, memAvg       float64
+				n                    uint64
+				osP50, osP95, osMax  float64
+				rtP50, rtP95, memAvg float64
 			)
 			if err := conn.QueryRow(ctx, q, logComment).Scan(&n, &osP50, &osP95, &osMax, &rtP50, &rtP95, &memAvg); err != nil {
 				return nil, false, fmt.Errorf("query_log read: %w", err)

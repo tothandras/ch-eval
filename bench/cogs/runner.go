@@ -25,18 +25,18 @@ import (
 
 // Opts configures one cogs run.
 type Opts struct {
-	CellPath     string // path to the cell manifest
-	RunProfile   string // "" (manifest durations) or "ci"
-	SkipInit     bool   // reuse existing table + data (skips preload; the caller skips the fresh migration)
-	ResultsDir   string
-	PricingDir   string
+	CellPath   string // path to the cell manifest
+	RunProfile string // "" (manifest durations) or "ci"
+	SkipInit   bool   // reuse existing table + data (skips preload; the caller skips the fresh migration)
+	ResultsDir string
+	PricingDir string
 	// Scenario is the resolved scenario; the caller has applied its migrations
 	// and conn's default database is Scenario.Config.Database.
 	Scenario scenario.Scenario
 	// Target is the manifest of the target the run executes on; it names the
 	// cluster whose replicas the accounting reads.
-	Target   target.Manifest
-	Database string // scenario database (for system-table filters)
+	Target        target.Manifest
+	Database      string // scenario database (for system-table filters)
 	HarnessCommit string
 
 	// UsageExport, when set, reconciles the run against a Cloud usage export.

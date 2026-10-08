@@ -21,7 +21,7 @@ func fixtureAccounting() Accounting {
 				{Component: "query", Class: "key_only", Cache: "warm", N: 2_000, CPUSec: 100, ResultBytes: 50_000_000, PeakMemBytes: 64 << 20},
 			},
 		},
-		Merges: accounting.MergeStats{Merges: 120, CPUSec: 300},
+		Merges:   accounting.MergeStats{Merges: 120, CPUSec: 300},
 		Capacity: accounting.Capacity{Replicas: 2, VCPUsPerReplica: 4, TotalVCPUs: 8, Source: "CGroupMaxCPU"},
 		Storage: StorageTimeline{
 			Prepare:  accounting.StorageSnapshot{CompressedBytes: 1_000_000_000},

@@ -47,28 +47,28 @@ type metricDef struct {
 
 // MetricPoint is one data point. Fields not used by the point's type are zero.
 type MetricPoint struct {
-	Type          MetricType
-	Name          string
-	Description   string
-	Unit          string
-	Monotonic     bool
-	IsInt         bool // gauge/sum value is an OTLP asInt
-	Temporality   int32
-	Attrs         []Attr
-	Resource      int
-	Scope         int
-	StartNs       uint64 // 0 for gauges
-	TimeNs        uint64
-	Value         float64 // gauge/sum
-	Count         uint64
-	SumValue      float64
-	Bounds        []float64 // histogram
-	BucketCounts  []uint64  // histogram, or exp histogram positive buckets
-	Scale         int32
-	ZeroCount     uint64
-	PosOffset     int32
-	Quantiles     []float64 // summary
-	QuantileVals  []float64
+	Type         MetricType
+	Name         string
+	Description  string
+	Unit         string
+	Monotonic    bool
+	IsInt        bool // gauge/sum value is an OTLP asInt
+	Temporality  int32
+	Attrs        []Attr
+	Resource     int
+	Scope        int
+	StartNs      uint64 // 0 for gauges
+	TimeNs       uint64
+	Value        float64 // gauge/sum
+	Count        uint64
+	SumValue     float64
+	Bounds       []float64 // histogram
+	BucketCounts []uint64  // histogram, or exp histogram positive buckets
+	Scale        int32
+	ZeroCount    uint64
+	PosOffset    int32
+	Quantiles    []float64 // summary
+	QuantileVals []float64
 }
 
 type series struct {

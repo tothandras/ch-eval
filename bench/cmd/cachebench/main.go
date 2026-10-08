@@ -12,10 +12,10 @@
 //  1. Read the seeded window from min/max(time) on the events table.
 //  2. For each freshness cutoff on the --cutoffs curve:
 //     a. (Re)populate the cache with hourly × subject × group-by rollups of the
-//        history [from, cutoff), using the IDENTICAL filter + extraction as the
-//        query.
+//     history [from, cutoff), using the IDENTICAL filter + extraction as the
+//     query.
 //     b. VERIFY cached == uncached values for every aggregation, keyed on the
-//        FULL (window, subject, group-by) tuple — billing-safety gate.
+//     FULL (window, subject, group-by) tuple — billing-safety gate.
 //     c. Time cached vs uncached over --iterations runs; report median.
 //
 // Usage (from inside the devenv shell):

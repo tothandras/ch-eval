@@ -81,7 +81,9 @@ func runProbes(ctx context.Context, f *flags, probesDir string, only []string) e
 	if err := conn.Exec(ctx, "CREATE DATABASE "+probeDB+onCluster); err != nil {
 		return fmt.Errorf("probe scratch database: %w", err)
 	}
-	defer func() { _ = conn.Exec(context.WithoutCancel(ctx), "DROP DATABASE IF EXISTS "+probeDB+onCluster+" SYNC") }()
+	defer func() {
+		_ = conn.Exec(context.WithoutCancel(ctx), "DROP DATABASE IF EXISTS "+probeDB+onCluster+" SYNC")
+	}()
 
 	env := probe.Env{Conn: conn, Options: opts, Manifest: m, DB: probeDB, Nodes: max(len(md.Replicas), 1)}
 	run := probeRun{RunID: runs.NewRunID(time.Now()), Target: m.Name, Platform: m.Platform, Tier: m.Tier,

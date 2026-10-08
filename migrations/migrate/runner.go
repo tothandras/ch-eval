@@ -53,10 +53,10 @@ type State struct {
 
 // StatementResult is one executed statement and, with Measure, its cost.
 type StatementResult struct {
-	SQL        string        `json:"sql"`
-	WallMs     float64       `json:"wall_ms"`
-	MutationMs float64       `json:"mutation_wait_ms,omitempty"`
-	Error      string        `json:"error,omitempty"`
+	SQL        string         `json:"sql"`
+	WallMs     float64        `json:"wall_ms"`
+	MutationMs float64        `json:"mutation_wait_ms,omitempty"`
+	Error      string         `json:"error,omitempty"`
 	Cost       *StatementCost `json:"cost,omitempty"`
 }
 

@@ -36,8 +36,8 @@ func fixtureResult() Result {
 		Cell: Cell{
 			Name: "mixed-5keps-4qps", Scenario: "proposal", PreloadRows: 10_000_000,
 			Soak: Duration(30 * time.Minute), Measure: Duration(time.Hour), Drain: Duration(15 * time.Minute),
-			Ingest: IngestSpec{EventsPerSec: 5000, BatchMaxRows: 5000, FlushInterval: Duration(time.Second), Namespaces: 32, MixedValue: true, Seed: 42},
-			Query:  QuerySpec{QPS: 4, Arrival: "poisson", Mix: "production", ColdFraction: 0.1, ConcurrencyCap: 16},
+			Ingest:         IngestSpec{EventsPerSec: 5000, BatchMaxRows: 5000, FlushInterval: Duration(time.Second), Namespaces: 32, MixedValue: true, Seed: 42},
+			Query:          QuerySpec{QPS: 4, Arrival: "poisson", Mix: "production", ColdFraction: 0.1, ConcurrencyCap: 16},
 			PricingProfile: "fixture",
 		},
 		Phases: Phases{
