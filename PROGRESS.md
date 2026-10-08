@@ -10,6 +10,12 @@ Keep it accurate enough that a fresh agent can continue.
   sharding, compute/data separation, and scaling/rightsizing. **Waiting for
   owner review.** Phase 2 does not start until the questions below are
   answered.
+- **AI Cost Management (internal workload):** brief received 2026-10-08,
+  locally verified, deliverable written:
+  `internal/ai-cost-management/REPORT.md`. Waiting for owner review.
+- **Publication blocker:** `internal/` holds internal design material. Remove
+  or scrub it before the repository is made public. The repository is private
+  as of 2026-10-08.
 - **Branch:** `claude/lucid-edison-5q68bh`.
 - **Plan of record:** OpenSpec change `cross-target-evaluation`
   (`openspec validate --strict` passes).
@@ -144,6 +150,42 @@ the two s3 cache-on-write variants, and the rightsizing sweep.
 - **C4 adds a Cloud prewarm sub-run.**
 - **Locality probes run before C1–C4.**
 
+### AI Cost Management workload (2026-10-08, owner addition)
+
+**What was done.** All work was local and correctness-only. Details:
+`internal/ai-cost-management/README.md`.
+- **Brief:** stored, with its SQL verbatim. One out-of-scope item is omitted
+  from the copy.
+- **Builds tested:** Altinity 26.3.16 and 26.3.33; upstream 26.3.33, 26.4.5,
+  26.7.4 and 26.8.2.
+- **Local 3 × 2 cluster:** two `Replicated` databases, `Distributed` tables,
+  an interserver secret, the `SQL_` prefix, and replicated access storage and
+  UDFs.
+- **Data:** 2M deterministic synthetic events, plus redeliveries and
+  changed-time retries.
+- **Experiments:** listed in tasks §8.
+- **Deliverable:** `internal/ai-cost-management/REPORT.md` in the brief's
+  format, with each claim labelled verified, inferred or assumed and an
+  evidence index.
+
+**Headline results (verified locally)**
+
+| # | Result |
+| --- | --- |
+| 1 | D-13's max-offset check passes stale under lag: 108/300 and 194/300 rows visible. A count-based same-statement check never did. |
+| 2 | Altinity 26.3.16 lets the reader bypass row policies via `mergeTreeProjection` (all tenants) and `mergeTreeIndex`. Fixed in 26.3.33. |
+| 3 | The projections are unused on every build and cost about +20–34% insert CPU and +25% merge CPU. |
+| 4 | Changed-time retries are double-counted under `FINAL`. |
+| 5 | `FINAL` is not partition-local by default. |
+| 6 | The D2 monthly export can exceed 512 MiB, and the reader cannot enable spilling. |
+| 7 | Profile `MAX` constraints do not bound defaults. |
+| 8 | `parallel_distributed_insert_select=2` ignores the destination sharding key. |
+| 9 | A replica outage gives DDL error 159 with the change still applied. |
+| 10 | Tenant sharding gives single-shard reads with identical results, but skews data: 59% on one shard. |
+
+**Local cluster note.** The cluster keeps running between turns while the
+container lives. Recreate it from the README.
+
 ## Questions for the owner (Phase 1 stop point)
 
 1. **Budget:** what is the cap for paid resources, and which AWS account or
@@ -207,6 +249,10 @@ the two s3 cache-on-write variants, and the rightsizing sweep.
 9. **Retention for storage rightsizing (E14):** OpenMeter events 13 months
    and OTel 30 days by default? Override if OpenMeter has real retention
    policies.
+10. **AI Cost Management:** review `internal/ai-cost-management/REPORT.md`.
+    Should this repository run any of its measurement requests on paid tiers?
+    It cannot reach the team's clusters itself. Should `internal/` stay in
+    this repository at all?
 
 ## Next (Phase 2, after approval)
 

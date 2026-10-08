@@ -1,0 +1,45 @@
+== clickhouse/clickhouse-server:26.4.5.143 (26.4.5.143)
+FINAL ReplacingSorted streams (default settings): 2
+FINAL ReplacingSorted streams (do_not_merge_across_partitions_select_final=1): 3
+subject-eq []: 154704	['ai_cost_management.usage_events.by_subject']
+subject-eq [FINAL]: 522680	[]
+a2_explorer_top_subjects: 44518	[]
+b3_threshold_each_subject: 44518	[]
+C1 unbounded FINAL read_rows: 492643 of tenant rows 400422
+map: map_serialization_version_for_zero_level_parts=basic map_buckets_min_avg_size=32 
+== clickhouse/clickhouse-server:26.7.4.58 (26.7.4.58)
+FINAL ReplacingSorted streams (default settings): 2
+FINAL ReplacingSorted streams (do_not_merge_across_partitions_select_final=1): 3
+subject-eq []: 154704	['ai_cost_management.usage_events.by_subject']
+subject-eq [FINAL]: 570918	[]
+a2_explorer_top_subjects: 44518	[]
+b3_threshold_each_subject: 44518	[]
+C1 unbounded FINAL read_rows: 500473 of tenant rows 400422
+map: map_serialization_version_for_zero_level_parts=basic map_buckets_min_avg_size=32 
+== clickhouse/clickhouse-server:26.8.2.7 (26.8.2.7)
+FINAL ReplacingSorted streams (default settings): 2
+FINAL ReplacingSorted streams (do_not_merge_across_partitions_select_final=1): 3
+subject-eq []: 154704	['ai_cost_management.usage_events.by_subject']
+subject-eq [FINAL]: 570918	[]
+a2_explorer_top_subjects: 44518	[]
+b3_threshold_each_subject: 44518	[]
+C1 unbounded FINAL read_rows: 441273 of tenant rows 400422
+map: map_serialization_version_for_zero_level_parts=basic map_buckets_min_avg_size=32 
+== altinity/clickhouse-server:26.3.33.10001.altinitystable (26.3.33.10001.altinitystable)
+FINAL ReplacingSorted streams (default settings): 2
+FINAL ReplacingSorted streams (do_not_merge_across_partitions_select_final=1): 3
+subject-eq []: 154704	['ai_cost_management.usage_events.by_subject']
+subject-eq [FINAL]: 522680	[]
+a2_explorer_top_subjects: 44518	[]
+b3_threshold_each_subject: 44518	[]
+C1 unbounded FINAL read_rows: 481180 of tenant rows 400422
+map: map_serialization_version_for_zero_level_parts=basic map_buckets_min_avg_size=32 
+== altinity/clickhouse-server:26.3.16.10001.altinitystable (26.3.16.10001.altinitystable)
+FINAL ReplacingSorted streams (default settings): 2
+FINAL ReplacingSorted streams (do_not_merge_across_partitions_select_final=1): 3
+subject-eq []: 154704	['ai_cost_management.usage_events.by_subject']
+subject-eq [FINAL]: 522680	[]
+a2_explorer_top_subjects: 44518	[]
+b3_threshold_each_subject: 44518	[]
+C1 unbounded FINAL read_rows: 481180 of tenant rows 400422
+map: map_serialization_version_for_zero_level_parts=basic map_buckets_min_avg_size=32 

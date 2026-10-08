@@ -1,0 +1,1 @@
+<clickhouse><macros><cluster>prod_us</cluster><shard>1</shard><replica>ch-s1r1</replica><shard_replica>s1r1</shard_replica></macros></clickhouse>

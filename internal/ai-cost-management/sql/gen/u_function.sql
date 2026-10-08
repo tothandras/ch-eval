@@ -1,0 +1,2 @@
+-- helper used by the generator: deterministic UUID from (seed, salt)
+CREATE OR REPLACE FUNCTION u AS (x, salt) -> toUUID(concat(substr(leftPad(lower(hex(cityHash64(x, salt, 1))), 16, '0'), 1, 8), '-', substr(leftPad(lower(hex(cityHash64(x, salt, 1))), 16, '0'), 9, 4), '-4', substr(leftPad(lower(hex(cityHash64(x, salt, 1))), 16, '0'), 14, 3), '-8', substr(leftPad(lower(hex(cityHash64(x, salt, 2))), 16, '0'), 2, 3), '-', substr(leftPad(lower(hex(cityHash64(x, salt, 2))), 16, '0'), 5, 12)));

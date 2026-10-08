@@ -1,0 +1,15 @@
+== altinity/clickhouse-server:26.3.16.10001.altinitystable
+  usage_events (policy)                : 1	80124
+summary: {"read_rows":"98304","read_bytes":"1572864","written_rows":"0","written_bytes":"0","total_rows_to_read":"98304","result_rows":"1","result_bytes
+  mergeTreeIndex(...)                  : 10	30
+summary: {"read_rows":"30","read_bytes":"480","written_rows":"0","written_bytes":"0","total_rows_to_read":"0","result_rows":"1","result_bytes":"272","elap
+  mergeTreeProjection(..., by_subject) : 200000
+summary: {"read_rows":"200000","read_bytes":"1600000","written_rows":"0","written_bytes":"0","total_rows_to_read":"200000","result_rows":"1","result_byte
+  total rows (admin)                   : 200000
+== altinity/clickhouse-server:26.3.33.10001.altinitystable
+  usage_events (policy)                : 1	80124
+summary: {"read_rows":"98304","read_bytes":"1572864","written_rows":"0","written_bytes":"0","total_rows_to_read":"98304","result_rows":"1","result_bytes
+  mergeTreeIndex(...)                  : Code: 497. DB::Exception: Cannot read from `mergeTreeIndex` because a row policy is applied on table ai_cost_management.usage_events (c80eecb2-bb7f-47a2-a64d-21
+  mergeTreeProjection(..., by_subject) : 80124
+summary: {"read_rows":"98304","read_bytes":"1572864","written_rows":"0","written_bytes":"0","total_rows_to_read":"98304","result_rows":"1","result_bytes":
+  total rows (admin)                   : 200000

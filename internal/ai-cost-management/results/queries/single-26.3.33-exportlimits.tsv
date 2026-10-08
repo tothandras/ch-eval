@@ -1,0 +1,3 @@
+query	status	digest	result_rows	client_ms	read_rows	read_bytes	mem_initiator	mem_remote_max	projections	remote_subqueries	error
+d1_event_export_day	OK	a7aa1de07fd2	2058	137.0	25004	11427491	47523692	0		0	
+d2_focus_export_month	ERR	ERROR	0	1749.4							Code: 241. DB::Exception: Query memory limit exceeded: would use 512.24 MiB (attempt to allocate chunk of 4.84 MiB), maximum: 512.00 MiB: While executing MergeSortingTransform. (MEMORY_LIMIT_EXCEEDED)

@@ -1,0 +1,68 @@
+# Local 3 shards x 2 replicas mirror of the proposed prod-us layout. Correctness and plan checks only.
+name: aicm-3x2
+services:
+  keeper:
+    image: ${KEEPER_IMAGE:-altinity/clickhouse-keeper:26.3.33.10001.altinitystable}
+    hostname: keeper
+    volumes:
+      - ./config/keeper.xml:/etc/clickhouse-keeper/keeper_config.xml:ro
+  ch-s1r1:
+    image: ${CH_IMAGE:-altinity/clickhouse-server:26.3.33.10001.altinitystable}
+    hostname: ch-s1r1
+    environment: {CLICKHOUSE_SKIP_USER_SETUP: "1"}
+    depends_on: [keeper]
+    restart: on-failure
+    volumes:
+      - ./config/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml:ro
+      - ./config/macros-ch-s1r1.xml:/etc/clickhouse-server/config.d/macros.xml:ro
+      - ./config/users.xml:/etc/clickhouse-server/users.d/zz-default.xml:ro
+  ch-s1r2:
+    image: ${CH_IMAGE:-altinity/clickhouse-server:26.3.33.10001.altinitystable}
+    hostname: ch-s1r2
+    environment: {CLICKHOUSE_SKIP_USER_SETUP: "1"}
+    depends_on: [keeper]
+    restart: on-failure
+    volumes:
+      - ./config/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml:ro
+      - ./config/macros-ch-s1r2.xml:/etc/clickhouse-server/config.d/macros.xml:ro
+      - ./config/users.xml:/etc/clickhouse-server/users.d/zz-default.xml:ro
+  ch-s2r1:
+    image: ${CH_IMAGE:-altinity/clickhouse-server:26.3.33.10001.altinitystable}
+    hostname: ch-s2r1
+    environment: {CLICKHOUSE_SKIP_USER_SETUP: "1"}
+    depends_on: [keeper]
+    restart: on-failure
+    volumes:
+      - ./config/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml:ro
+      - ./config/macros-ch-s2r1.xml:/etc/clickhouse-server/config.d/macros.xml:ro
+      - ./config/users.xml:/etc/clickhouse-server/users.d/zz-default.xml:ro
+  ch-s2r2:
+    image: ${CH_IMAGE:-altinity/clickhouse-server:26.3.33.10001.altinitystable}
+    hostname: ch-s2r2
+    environment: {CLICKHOUSE_SKIP_USER_SETUP: "1"}
+    depends_on: [keeper]
+    restart: on-failure
+    volumes:
+      - ./config/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml:ro
+      - ./config/macros-ch-s2r2.xml:/etc/clickhouse-server/config.d/macros.xml:ro
+      - ./config/users.xml:/etc/clickhouse-server/users.d/zz-default.xml:ro
+  ch-s3r1:
+    image: ${CH_IMAGE:-altinity/clickhouse-server:26.3.33.10001.altinitystable}
+    hostname: ch-s3r1
+    environment: {CLICKHOUSE_SKIP_USER_SETUP: "1"}
+    depends_on: [keeper]
+    restart: on-failure
+    volumes:
+      - ./config/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml:ro
+      - ./config/macros-ch-s3r1.xml:/etc/clickhouse-server/config.d/macros.xml:ro
+      - ./config/users.xml:/etc/clickhouse-server/users.d/zz-default.xml:ro
+  ch-s3r2:
+    image: ${CH_IMAGE:-altinity/clickhouse-server:26.3.33.10001.altinitystable}
+    hostname: ch-s3r2
+    environment: {CLICKHOUSE_SKIP_USER_SETUP: "1"}
+    depends_on: [keeper]
+    restart: on-failure
+    volumes:
+      - ./config/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml:ro
+      - ./config/macros-ch-s3r2.xml:/etc/clickhouse-server/config.d/macros.xml:ro
+      - ./config/users.xml:/etc/clickhouse-server/users.d/zz-default.xml:ro

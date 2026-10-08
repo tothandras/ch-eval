@@ -1,0 +1,2 @@
+query	status	digest	result_rows	client_ms	read_rows	read_bytes	mem_initiator	mem_remote_max	projections	remote_subqueries	error
+d2_focus_export_month	ERR	ERROR	0	20.1							Code: 164. DB::Exception: Cannot modify 'max_bytes_before_external_group_by' setting in readonly mode. (READONLY) (version 26.3.33.10001.altinitystable (altinity build)) 

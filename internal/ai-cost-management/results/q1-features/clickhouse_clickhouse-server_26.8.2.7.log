@@ -1,0 +1,152 @@
+# image: clickhouse/clickhouse-server:26.8.2.7
+# version: 26.8.2.7
+# custom_settings_prefixes: 
+OK    01_usage_events.sql :: CREATE TABLE usage_events
+OK    02_field_values.sql :: CREATE TABLE usage_event_field_values
+OK    03_functions.sql :: CREATE OR REPLACE FUNCTION usage_event_field_value_observations AS
+OK    03_functions.sql :: CREATE FUNCTION IF NOT EXISTS tag_token AS (key, value) ->
+OK    04_access.sql :: CREATE ROLE IF NOT EXISTS ai_cost_management_reader
+OK    04_access.sql :: CREATE ROLE IF NOT EXISTS ai_cost_management_writer
+OK    04_access.sql :: GRANT SELECT ON usage_events TO ai_cost_management_reader
+OK    04_access.sql :: GRANT INSERT ON usage_events TO ai_cost_management_writer
+OK    04_access.sql :: CREATE ROW POLICY OR REPLACE usage_events_reader_base ON usage_events
+OK    04_access.sql :: CREATE ROW POLICY OR REPLACE usage_events_tenant_guard ON usage_events
+OK    04_access.sql :: CREATE ROW POLICY IF NOT EXISTS usage_event_field_values_reader_base
+OK    04_access.sql :: CREATE ROW POLICY IF NOT EXISTS usage_event_field_values_tenant_guard
+OK    04_access.sql :: GRANT SELECT ON usage_event_field_values TO ai_cost_management_reader
+OK    04_access.sql :: CREATE USER IF NOT EXISTS ai_cost_management_field_values_definer IDENTIFIED WITH sha256_h
+OK    04_access.sql :: GRANT SELECT ON usage_events TO ai_cost_management_field_values_definer
+OK    04_access.sql :: GRANT INSERT ON usage_event_field_values TO ai_cost_management_field_values_definer
+OK    04_access.sql :: CREATE SETTINGS PROFILE OR REPLACE ai_cost_management_reader_settings
+OK    05_mv.sql :: CREATE MATERIALIZED VIEW IF NOT EXISTS usage_event_field_values_mv
+OK    06_backfill_table.sql :: CREATE TABLE IF NOT EXISTS _usage_event_field_values_backfill (
+## SHOW CREATE TABLE usage_events
+CREATE TABLE default.usage_events
+(
+    `tenant_id` UUID,
+    `id` String,
+    `type` LowCardinality(String),
+    `source` String,
+    `subject` String DEFAULT '',
+    `time` DateTime64(3, 'UTC'),
+    `traceparent` String DEFAULT '',
+    `tracestate` String DEFAULT '',
+    `ingested_at` DateTime64(3, 'UTC'),
+    `stored_at` DateTime64(3, 'UTC') DEFAULT now64(3),
+    `kafka_topic` LowCardinality(String) DEFAULT '',
+    `kafka_partition` UInt64 DEFAULT 0,
+    `kafka_offset` UInt64 DEFAULT 0,
+    `arrival` LowCardinality(String) MATERIALIZED if(ingested_at > (time + toIntervalHour(1)), 'late', 'on_time'),
+    `provider` LowCardinality(String) DEFAULT '',
+    `model` LowCardinality(String) DEFAULT '',
+    `model_id` LowCardinality(String) DEFAULT '',
+    `request_mode` LowCardinality(String) DEFAULT '',
+    `region` LowCardinality(String) DEFAULT '',
+    `client` LowCardinality(String) DEFAULT '',
+    `input_tokens` UInt64 DEFAULT 0,
+    `input_text_tokens` UInt64 DEFAULT 0,
+    `input_audio_tokens` UInt64 DEFAULT 0,
+    `input_image_tokens` UInt64 DEFAULT 0,
+    `input_cache_read_tokens` UInt64 DEFAULT 0,
+    `input_cache_read_text_tokens` UInt64 DEFAULT 0,
+    `input_cache_read_audio_tokens` UInt64 DEFAULT 0,
+    `input_cache_read_image_tokens` UInt64 DEFAULT 0,
+    `input_cache_read_video_tokens` UInt64 DEFAULT 0,
+    `input_cache_write_tokens` UInt64 DEFAULT 0,
+    `input_cache_write_text_tokens` UInt64 DEFAULT 0,
+    `input_cache_write_audio_tokens` UInt64 DEFAULT 0,
+    `input_cache_write_image_tokens` UInt64 DEFAULT 0,
+    `input_cache_write_video_tokens` UInt64 DEFAULT 0,
+    `output_tokens` UInt64 DEFAULT 0,
+    `output_text_tokens` UInt64 DEFAULT 0,
+    `output_audio_tokens` UInt64 DEFAULT 0,
+    `output_reasoning_tokens` UInt64 DEFAULT 0,
+    `accepted_prediction_tokens` UInt64 DEFAULT 0,
+    `rejected_prediction_tokens` UInt64 DEFAULT 0,
+    `realtime_audio_ms` UInt64 DEFAULT 0,
+    `reported_total_tokens` UInt64 DEFAULT 0,
+    `semantic_cache_status` LowCardinality(String) DEFAULT '',
+    `semantic_cache_embeddings_provider` LowCardinality(String) DEFAULT '',
+    `semantic_cache_embeddings_model` LowCardinality(String) DEFAULT '',
+    `semantic_cache_embeddings_tokens` UInt64 DEFAULT 0,
+    `compression_status` LowCardinality(String) DEFAULT '',
+    `compression_input_tokens_before` UInt64 DEFAULT 0,
+    `reported_cost_usd` Decimal(18, 9) DEFAULT 0,
+    `reported_cache_cost_usd` Decimal(18, 9) DEFAULT 0,
+    `teams` Array(String) DEFAULT [],
+    `workspace_id` UUID DEFAULT '00000000-0000-0000-0000-000000000000',
+    `service_id` UUID DEFAULT '00000000-0000-0000-0000-000000000000',
+    `route_id` UUID DEFAULT '00000000-0000-0000-0000-000000000000',
+    `plugin_id` UUID DEFAULT '00000000-0000-0000-0000-000000000000',
+    `consumer_id` UUID DEFAULT '00000000-0000-0000-0000-000000000000',
+    `consumer_group_ids` Array(UUID) DEFAULT [],
+    `application_id` UUID DEFAULT '00000000-0000-0000-0000-000000000000',
+    `request_id` String DEFAULT '',
+    `tags` Map(LowCardinality(String), String) DEFAULT map(),
+    `tag_items` Array(String) MATERIALIZED arrayMap(pair -> concat(base64Encode(pair.1), ':', base64Encode(pair.2)), CAST(tags, 'Array(Tuple(String, String))')) CODEC(ZSTD(1)),
+    INDEX idx_id id TYPE bloom_filter(0.01) GRANULARITY 4,
+    INDEX idx_tag_items tag_items TYPE text(tokenizer = 'array') GRANULARITY 100000000,
+    INDEX idx_teams teams TYPE text(tokenizer = 'array') GRANULARITY 100000000,
+    INDEX idx_ingested_at ingested_at TYPE minmax GRANULARITY 4,
+    PROJECTION by_model
+    (
+        SELECT _part_offset
+        ORDER BY
+            tenant_id,
+            model,
+            toStartOfMinute(time)
+    ),
+    PROJECTION by_subject
+    (
+        SELECT _part_offset
+        ORDER BY
+            tenant_id,
+            subject,
+            toStartOfMinute(time)
+    )
+)
+ENGINE = ReplacingMergeTree
+PARTITION BY toYYYYMM(time)
+PRIMARY KEY (tenant_id, toStartOfMinute(time))
+ORDER BY (tenant_id, toStartOfMinute(time), time, source, id)
+SETTINGS non_replicated_deduplication_window = 1000, deduplicate_merge_projection_mode = 'rebuild', allow_part_offset_column_in_projections = 1, map_serialization_version = 'with_buckets', map_buckets_strategy = 'sqrt', max_buckets_in_map = 32, index_granularity = 8192
+## engine/settings
+_usage_event_field_values_backfill	ReplacingMergeTree
+usage_event_field_values	ReplacingMergeTree
+usage_event_field_values_mv	MaterializedView
+usage_events	ReplacingMergeTree
+## relevant setting defaults
+allow_experimental_full_text_index	1
+async_insert	1
+deduplicate_insert	enable
+distributed_foreground_insert	0
+distributed_push_down_limit	1
+do_not_merge_across_partitions_select_final	0
+enable_automatic_decision_for_merging_across_partitions_for_final	1
+enable_full_text_index	1
+enable_parallel_replicas	0
+enable_vertical_final	1
+fallback_to_stale_replicas_for_distributed_queries	1
+insert_deduplicate	1
+load_balancing	random
+min_table_rows_to_use_projection_index	1000000
+optimize_read_in_order	1
+optimize_use_projection_filtering	1
+optimize_use_projections	1
+prefer_localhost_replica	1
+read_in_order_use_virtual_row	1
+serialize_query_plan	0
+skip_unavailable_shards	0
+use_query_condition_cache	1
+use_skip_indexes_if_final	1
+use_skip_indexes_if_final_exact_mode	1
+use_skip_indexes_on_data_read	1
+allow_part_offset_column_in_projections	1
+deduplicate_merge_projection_mode	throw
+map_buckets_strategy	sqrt
+map_serialization_version	basic
+max_buckets_in_map	32
+min_bytes_for_wide_part	10485760
+non_replicated_deduplication_window	0
+replicated_deduplication_window	10000
+ttl_only_drop_parts	0

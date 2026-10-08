@@ -72,3 +72,25 @@
 
 - [ ] 7.1 `bench report` with verdict rules plus flip conditions; `docs/methodology.md` final
 - [ ] 7.2 Regenerate `REPORT.md` and the feature matrix; verify no cloud resources remain; archive this change
+
+## 8. AI Cost Management (internal workload, owner addition 2026-10-08)
+
+- [x] 8.1 Store the brief (`internal/ai-cost-management/BRIEF.md`) and its SQL verbatim; mark `internal/` as a publication blocker
+- [x] 8.2 Q1 feature acceptance on Altinity 26.3.16/26.3.33, upstream 26.3.33/26.4.5/26.7.4/26.8.2
+- [x] 8.3 Local 3 × 2 cluster copying D-05/D-07/D-09/D-10; deterministic synthetic data with redeliveries, changed-time retries and late events
+- [x] 8.4 Experiments:
+  - parity (single node vs D-09 vs tenant sharding);
+  - projections;
+  - `FINAL` plan;
+  - isolation with and without the secret;
+  - table-function bypass on 26.3.16;
+  - D-13 under lag;
+  - mutations and erasure;
+  - D-12 with a replica down;
+  - materialized-view cost;
+  - map buckets;
+  - export memory;
+  - `parallel_distributed_insert_select`
+- [x] 8.5 `internal/ai-cost-management/REPORT.md` in the brief's six-part format, plus appendix answers to section 10
+- [ ] 8.6 Owner review; decide whether this repo should run any of the measurement requests on paid tiers
+

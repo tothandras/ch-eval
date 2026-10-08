@@ -1,0 +1,17 @@
+# D1/D2 export memory, local altinity 26.3.33.10001, 2026-10-08. Limits as the exporter sets them:
+# max_execution_time=300, max_memory_usage=536870912, max_threads=2, wait_end_of_query=1.
+# Synthetic tenant ...0001, September 2026: 244,242 events, 242,937 D2 groups. Script: scripts/probe_query.py
+
+single node, reader, D2 month, FORMAT Null      : ok   403-405 MiB
+single node, reader, D2 month, TSV/CSV          : FAIL 241 (would use ~528-538 MiB; ParallelFormatting chunk 64 MiB)
+single node, reader, D2 month, Parquet          : ok   413 MiB
+single node, admin,  D2 month, CSV, parallel formatting off            : ok 415 MiB
+single node, admin,  D2 month, CSV, external group by 128 MiB / 64 MiB : FAIL 241 (spills 22/40 parts, still over)
+single node, admin,  D2 month, CSV, ext group by + ext sort 128 MiB + parallel formatting off : ok 413 MiB
+single node, admin,  D2 one day (2026-09-15), CSV                       : ok 39 MiB
+cluster 3x2, reader, D2 month, TSV              : ok   initiator ~500 MiB, shards max 109 MiB
+cluster 3x2, admin,  D2 month, CSV              : FAIL 241 (would use 535.6 MiB) - also with ext group by 128 MiB
+cluster 3x2, admin,  D2 one day, CSV            : ok   initiator 29 MiB, shards 22 MiB
+D1 one day (2,058 rows): 42-48 MiB single node; ~30 MiB initiator on the cluster
+reader cannot set max_bytes_before_external_group_by / max_bytes_before_external_sort /
+output_format_parallel_formatting / log_comment: Code 164 READONLY

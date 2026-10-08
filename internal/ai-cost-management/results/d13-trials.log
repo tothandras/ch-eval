@@ -1,0 +1,43 @@
+# D-13 trials on the local 3x2 cluster (altinity 26.3.33.10001), 2026-10-08.
+# Lag injected with SYSTEM STOP FETCHES on one replica per shard; worker-style batch of 300 rows for
+# tenant ...0009, Kafka partition 5, inserted via the Distributed table with distributed_foreground_insert=1.
+# Reader: aicm_reader, load_balancing='in_order' unless noted. Script: scripts/d13_trial.py
+
+## Run 1: fetches stopped on ch-s2r1, ch-s3r1; writer default (random, prefer_localhost_replica=1); max-offset check
+base 20001000 RETRY(395)
+base 20002000 PASS visible=194/300   <-- stale pass
+base 20003000 RETRY(395)
+base 20004000 RETRY(395)
+base 20005000 PASS visible=300/300
+base 20006000 RETRY(395)
+
+## Run 2: same lag; max-offset check (8 trials) vs count-based check (8 trials)
+maxoffset 21001000 RETRY(395)
+maxoffset 21002000 PASS visible=300
+maxoffset 21003000 RETRY(395)
+maxoffset 21004000 PASS visible=108   <-- stale pass
+maxoffset 21005000 RETRY(395)
+maxoffset 21006000 RETRY(395)
+maxoffset 21007000 RETRY(395)
+maxoffset 21008000 PASS visible=300
+count 22001000 RETRY(395)
+count 22002000 RETRY(395)
+count 22003000 PASS visible=300
+count 22004000 RETRY(395)
+count 22005000 RETRY(395)
+count 22006000 RETRY(395)
+count 22007000 RETRY(395)
+count 22008000 RETRY(395)
+# count-based check: 0 stale passes (passes only with all 300 rows visible)
+
+## Run 3: fetches stopped on all second replicas (s1r2, s2r2, s3r2)
+A) writer in_order + prefer_localhost_replica=0 from s1r1; reader in_order, prefer_localhost_replica=1 (default) from s2r2
+   RETRY(395); RETRY(395); PASS visible=193  <-- stale pass (reader read its own lagging local replica)
+B) same, reader prefer_localhost_replica=0
+   PASS 300; PASS 300; PASS 300
+C) writer default from s2r2; reader in_order + prefer_localhost_replica=0 from s1r1
+   PASS 300; PASS 300; PASS 300
+
+## Run 4: recovery window: s2r1 stopped, batch written (shard 2 -> s2r2), s2r1 restarted with fetches frozen
+reader in_order + prefer_localhost_replica=0: visible 300 (both checks). The recovered replica was not chosen
+immediately; inferred cause: load balancing ranks replicas by recent error count (distributed_replica_error_half_life=60s).

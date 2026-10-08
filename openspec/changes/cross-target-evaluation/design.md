@@ -528,6 +528,34 @@ and does not reproduce of Cloud's model.
 | E14 | What does storage really cost? | Measured bytes per event per replica × retention (OpenMeter 13 months, OTel 30 days by default; parameters) × headroom factor (E11) → $/month per target and storage mode |
 | E15 | Where do the costs cross? | A load-profile cost model: a parameterized diurnal/weekly curve. Cloud follows it using the autoscaling and idle behaviour measured in E1–E3; self-managed is provisioned for peak (plus optional scheduled scaling). Output: monthly cost per target and the crossover points (peak/average ratio, utilization, ops-hours) used by the verdict flip conditions. |
 
+### D16. AI Cost Management (internal workload; owner addition)
+
+**Scope.** The brief is self-contained: no access to the team's clusters, and an explicit output
+format. It is answered with:
+- **Local verification** against the exact builds in play:
+  - Altinity 26.3.16 and 26.3.33;
+  - upstream 26.3.33, 26.4.5, 26.7.4 and 26.8.2.
+- **A local 3 × 2 cluster** that copies the proposed `prod-us` design:
+  - two `Replicated` databases;
+  - `Distributed` tables;
+  - an interserver secret and the `SQL_` prefix;
+  - replicated access storage and replicated UDFs.
+- **Deterministic synthetic data** containing redeliveries, changed-time retries and late events.
+- **Read-only measurement statements** for the team's own Cloud and `prod-us` environments.
+
+**Where things live.** Everything sits under `internal/ai-cost-management/`. The OpenMeter and OTel
+workloads stay public-safe.
+
+**Overlap with D13.** The AICM experiments are a concrete instance of D13's questions:
+- R1: stale fallback and replica routing;
+- S1: parity;
+- S2: pruning;
+- S3 and S4: insert routing;
+- R6: DDL with a replica down.
+
+The public D13 implementation reuses the AICM scripts' techniques (`SYSTEM STOP FETCHES` lag
+injection, the count-based visibility check, and `parallel_distributed_insert_select`).
+
 ## Risks / Trade-offs
 
 **Fairness and comparability**

@@ -1,0 +1,52 @@
+<!-- Local 3x2 mirror of the proposed prod-us layout (D-05/D-07/D-09/D-10). Correctness only. -->
+<clickhouse>
+  <logger><level>information</level><console>1</console></logger>
+  <max_server_memory_usage>1800000000</max_server_memory_usage>
+  <mark_cache_size>268435456</mark_cache_size>
+  <primary_index_cache_size>134217728</primary_index_cache_size>
+  <!-- custom settings prefix the reader profile relies on (brief section 4) -->
+  <custom_settings_prefixes>SQL_</custom_settings_prefixes>
+  <zookeeper>
+    <node><host>keeper</host><port>9181</port></node>
+  </zookeeper>
+  <remote_servers replace="true">
+    <prod_us>
+      <!-- D-10: interserver secret, so remote shards run queries as the initial user -->
+      <secret>local-test-interserver-secret</secret>
+      <shard><internal_replication>true</internal_replication>
+        <replica><host>ch-s1r1</host><port>9000</port></replica>
+        <replica><host>ch-s1r2</host><port>9000</port></replica>
+      </shard>
+      <shard><internal_replication>true</internal_replication>
+        <replica><host>ch-s2r1</host><port>9000</port></replica>
+        <replica><host>ch-s2r2</host><port>9000</port></replica>
+      </shard>
+      <shard><internal_replication>true</internal_replication>
+        <replica><host>ch-s3r1</host><port>9000</port></replica>
+        <replica><host>ch-s3r2</host><port>9000</port></replica>
+      </shard>
+    </prod_us>
+    <prod_us_nosecret>
+      <!-- same layout WITHOUT the secret, to show what D-10 prevents -->
+      <shard><internal_replication>true</internal_replication>
+        <replica><host>ch-s1r1</host><port>9000</port></replica>
+        <replica><host>ch-s1r2</host><port>9000</port></replica>
+      </shard>
+      <shard><internal_replication>true</internal_replication>
+        <replica><host>ch-s2r1</host><port>9000</port></replica>
+        <replica><host>ch-s2r2</host><port>9000</port></replica>
+      </shard>
+      <shard><internal_replication>true</internal_replication>
+        <replica><host>ch-s3r1</host><port>9000</port></replica>
+        <replica><host>ch-s3r2</host><port>9000</port></replica>
+      </shard>
+    </prod_us_nosecret>
+  </remote_servers>
+  <distributed_ddl><path>/clickhouse/task_queue/ddl</path></distributed_ddl>
+  <!-- replicated access storage + replicated SQL UDFs (question 9.10) -->
+  <user_directories replace="true">
+    <users_xml><path>users.xml</path></users_xml>
+    <replicated><zookeeper_path>/clickhouse/access/</zookeeper_path></replicated>
+  </user_directories>
+  <user_defined_zookeeper_path>/clickhouse/user_defined</user_defined_zookeeper_path>
+</clickhouse>

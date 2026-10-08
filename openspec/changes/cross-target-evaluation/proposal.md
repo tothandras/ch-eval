@@ -91,6 +91,19 @@ is either measured or explicitly labelled "assessed, not measured".
   - Rightsizing: the smallest SLO-compliant shape per workload and target, and
     a load-profile cost model that computes crossover points.
 
+**Owner addition (2026-10-08): AI Cost Management (internal workload)**
+- **Workload:** AI Cost Management usage analytics. Compares ClickHouse Cloud (one logical shard) with a shared Altinity 3 × 2 `prod-us` cluster.
+- **Brief and deliverable:** under `internal/ai-cost-management/`. The directory is internal and is removed before any publication.
+- **Local verification, against real builds:**
+  - feature acceptance on 26.3.16 through 26.8.2;
+  - a 3 × 2 cluster copy of the proposed design;
+  - tenant isolation across shards;
+  - the notifier's read-after-write check under injected replication lag;
+  - sharding-key alternatives;
+  - mutations;
+  - export memory.
+- **Paid-tier follow-ups:** the deliverable's measurement requests, run by the owning team or in Phase 3+ if the owner wants this repo to run them.
+
 **Feature matrix and cost**
 - **Feature probes.** `bench probe` runs SQL and Go probes per target.
   `docs/feature-matrix.md` is generated from `docs/feature-matrix.yaml` plus
@@ -131,6 +144,7 @@ is either measured or explicitly labelled "assessed, not measured".
 - `replication-sharding`: self-managed replication and sharding topologies, migration templating for sharded tables, and the R1–R6 / S1–S6 experiments.
 - `storage-locality`: compute/data separation (Cloud) vs colocation (self-managed EBS) vs self-managed S3-backed storage, experiments C1–C7.
 - `elastic-scaling`: on-demand compute and storage scaling experiments (E1–E12) and rightsizing with load-profile cost modelling (E13–E15).
+- `ai-cost-management-workload`: the internal AI Cost Management evaluation (brief, local 3 × 2 verification, report in the brief's output format).
 
 ### Modified Capabilities
 - `scenario-format`: scenarios nest under a workload (`scenarios/<workload>/<variant>/`). `init.sql` becomes an `init/` migration set. Per-workload parameter providers replace the fixed v1 parameter set for non-OpenMeter workloads.
