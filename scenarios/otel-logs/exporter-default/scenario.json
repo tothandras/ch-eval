@@ -1,0 +1,1 @@
+{"workload": "otel-logs", "database": "otel_logs_exporter_default", "tables": ["otel_logs"], "generator": "otel-logs"}

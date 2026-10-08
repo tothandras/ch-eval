@@ -1,0 +1,5 @@
+DROP TABLE IF EXISTS {{ db }}.otel_logs_attr_kv_rollup_15m_mv {{ onCluster }} SYNC;
+{{ dropDistributed "otel_logs_kv_rollup_15m" }};
+DROP TABLE IF EXISTS {{ db }}.{{ table "otel_logs_kv_rollup_15m" }} {{ onCluster }} SYNC;
+{{ dropDistributed "otel_logs" }};
+DROP TABLE IF EXISTS {{ db }}.{{ table "otel_logs" }} {{ onCluster }} SYNC;

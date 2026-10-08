@@ -1,0 +1,117 @@
+-- Ported by migrations/tools/port_otel_ddl.py from the verbatim upstream DDL; edit the
+-- script, not this file. Only placeholders differ from the source (ADR-0004).
+-- Source: docs/research/otel-ddl/clickstack_otel_traces.sql (its header cites the upstream file and commit)
+-- Source: docs/research/otel-ddl/clickstack_otel_traces_kv_rollup_15m.sql (its header cites the upstream file and commit)
+-- ClickStack TTL macro ${TRACES_TTL} (default 720h) rendered as toIntervalDay(3650) so pinned windows never expire.
+
+CREATE TABLE IF NOT EXISTS {{ db }}.{{ table "otel_traces" }} {{ onCluster }}
+(
+    `Timestamp` DateTime64(9) CODEC(Delta(8), ZSTD(1)),
+    `TraceId` String CODEC(ZSTD(1)),
+    `SpanId` String CODEC(ZSTD(1)),
+    `ParentSpanId` String CODEC(ZSTD(1)),
+    `TraceState` String CODEC(ZSTD(1)),
+    `SpanName` LowCardinality(String) CODEC(ZSTD(1)),
+    `SpanKind` LowCardinality(String) CODEC(ZSTD(1)),
+    `ServiceName` LowCardinality(String) CODEC(ZSTD(1)),
+    `ResourceAttributes` Map(LowCardinality(String), String) CODEC(ZSTD(1)),
+    `ScopeName` String CODEC(ZSTD(1)),
+    `ScopeVersion` String CODEC(ZSTD(1)),
+    `SpanAttributes` Map(LowCardinality(String), String) CODEC(ZSTD(1)),
+    `Duration` UInt64 CODEC(ZSTD(1)),
+    `StatusCode` LowCardinality(String) CODEC(ZSTD(1)),
+    `StatusMessage` String CODEC(ZSTD(1)),
+    `Events.Timestamp` Array(DateTime64(9)) CODEC(ZSTD(1)),
+    `Events.Name` Array(LowCardinality(String)) CODEC(ZSTD(1)),
+    `Events.Attributes` Array(Map(LowCardinality(String), String)) CODEC(ZSTD(1)),
+    `Links.TraceId` Array(String) CODEC(ZSTD(1)),
+    `Links.SpanId` Array(String) CODEC(ZSTD(1)),
+    `Links.TraceState` Array(String) CODEC(ZSTD(1)),
+    `Links.Attributes` Array(Map(LowCardinality(String), String)) CODEC(ZSTD(1)),
+    `__hdx_materialized_rum.sessionId` String MATERIALIZED ResourceAttributes['rum.sessionId'] CODEC(ZSTD(1)),
+    `SampleRate` UInt64 MATERIALIZED greatest(toUInt64OrZero(SpanAttributes['SampleRate']), 1) CODEC(T64, ZSTD(1)),
+    `ResourceAttributeItems` Array(String) ALIAS arrayMap((arr) -> concat(arr.1, '=', arr.2), ResourceAttributes::Array(Tuple(String, String))),
+    `SpanAttributeItems` Array(String) ALIAS arrayMap((arr) -> concat(arr.1, '=', arr.2), SpanAttributes::Array(Tuple(String, String))),
+    INDEX idx_trace_id TraceId TYPE text(tokenizer = 'array'),
+    INDEX idx_rum_session_id __hdx_materialized_rum.sessionId TYPE text(tokenizer = 'array'),
+    INDEX idx_res_attr_key mapKeys(ResourceAttributes) TYPE text(tokenizer = 'array'),
+    INDEX idx_res_attr_items ResourceAttributeItems TYPE text(tokenizer = 'array'),
+    INDEX idx_span_attr_key mapKeys(SpanAttributes) TYPE text(tokenizer = 'array'),
+    INDEX idx_span_attr_items SpanAttributeItems TYPE text(tokenizer = 'array'),
+    INDEX idx_duration Duration TYPE minmax GRANULARITY 1,
+    INDEX idx_lower_span_name SpanName TYPE text(tokenizer = 'splitByNonAlpha', preprocessor=lower(SpanName))
+)
+ENGINE = {{ engine "MergeTree" }}
+PARTITION BY toDate(Timestamp)
+ORDER BY (ServiceName, SpanName, toDateTime(Timestamp))
+TTL toDate(Timestamp) + toIntervalDay(3650)
+{{ settings "index_granularity = 8192, ttl_only_drop_parts = 1" }};
+
+{{ distributed "otel_traces" "cityHash64(TraceId)" }};
+
+-- Key Value Rollup (many columns in one table)
+CREATE TABLE IF NOT EXISTS {{ db }}.{{ table "otel_traces_kv_rollup_15m" }} {{ onCluster }}
+(
+    `Timestamp` DateTime,
+    `ColumnIdentifier` LowCardinality(String),
+    `Key` LowCardinality(String),
+    `Value` String,
+    `count` UInt64,
+    INDEX idx_count_minmax count TYPE minmax GRANULARITY 1,
+    INDEX idx_timestamp_minmax Timestamp TYPE minmax GRANULARITY 1
+)
+ENGINE = {{ engine "SummingMergeTree" }}
+PARTITION BY toDate(Timestamp)
+ORDER BY (ColumnIdentifier, Key, Timestamp, Value)
+TTL Timestamp + toIntervalDay(3650)
+{{ settings "index_granularity = 8192, ttl_only_drop_parts = 1" }};
+
+{{ distributed "otel_traces_kv_rollup_15m" "rand()" }};
+
+-- Single MV: CTE with UNION ALL across all columns, then aggregate
+CREATE MATERIALIZED VIEW IF NOT EXISTS {{ db }}.otel_traces_kv_rollup_15m_mv {{ onCluster }} TO {{ db }}.{{ table "otel_traces_kv_rollup_15m" }}
+AS WITH elements AS (
+    SELECT
+        'NativeColumn' AS ColumnIdentifier,
+        toStartOfFifteenMinutes(Timestamp) AS Timestamp,
+        'ServiceName' AS Key,
+        CAST(ServiceName AS String) AS Value
+    FROM {{ db }}.{{ table "otel_traces" }}
+    UNION ALL
+    SELECT
+        'NativeColumn' AS ColumnIdentifier,
+        toStartOfFifteenMinutes(Timestamp) AS Timestamp,
+        'SpanName' AS Key,
+        CAST(SpanName AS String) AS Value
+    FROM {{ db }}.{{ table "otel_traces" }}
+    UNION ALL
+    SELECT
+        'NativeColumn' AS ColumnIdentifier,
+        toStartOfFifteenMinutes(Timestamp) AS Timestamp,
+        'SpanKind' AS Key,
+        CAST(SpanKind AS String) AS Value
+    FROM {{ db }}.{{ table "otel_traces" }}
+    UNION ALL
+    SELECT
+        'NativeColumn' AS ColumnIdentifier,
+        toStartOfFifteenMinutes(Timestamp) AS Timestamp,
+        'StatusCode' AS Key,
+        CAST(StatusCode AS String) AS Value
+    FROM {{ db }}.{{ table "otel_traces" }}
+    UNION ALL
+    SELECT
+        'NativeColumn' AS ColumnIdentifier,
+        toStartOfFifteenMinutes(Timestamp) AS Timestamp,
+        'ScopeName' AS Key,
+        CAST(ScopeName AS String) AS Value
+    FROM {{ db }}.{{ table "otel_traces" }}
+    UNION ALL
+    SELECT
+        'NativeColumn' AS ColumnIdentifier,
+        toStartOfFifteenMinutes(Timestamp) AS Timestamp,
+        'ScopeVersion' AS Key,
+        CAST(ScopeVersion AS String) AS Value
+    FROM {{ db }}.{{ table "otel_traces" }}
+)
+SELECT Timestamp, ColumnIdentifier, Key, Value, count() AS count FROM elements
+GROUP BY Timestamp, ColumnIdentifier, Key, Value;

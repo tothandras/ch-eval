@@ -56,8 +56,12 @@ func (t Topology) Sharded() bool { return t.Dialect == Replicated && t.Shards > 
 
 // String is a compact label recorded with applied migrations.
 func (t Topology) String() string {
+	s := string(t.Dialect)
 	if t.Dialect == Replicated {
-		return fmt.Sprintf("%s(%s,shards=%d)", t.Dialect, t.Cluster, max(1, t.Shards))
+		s = fmt.Sprintf("%s(%s,shards=%d)", t.Dialect, t.Cluster, max(1, t.Shards))
 	}
-	return string(t.Dialect)
+	if t.StoragePolicy != "" {
+		s += "+policy=" + t.StoragePolicy
+	}
+	return s
 }

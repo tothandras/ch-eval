@@ -47,6 +47,7 @@ type State struct {
 	Name      string
 	Checksum  string
 	Status    string
+	Topology  string // topology the version was rendered for
 	AppliedAt time.Time
 }
 
@@ -138,7 +139,7 @@ func (r *Runner) Status(ctx context.Context) (map[uint64]State, error) {
 		sctx = clickhouse.Context(ctx, clickhouse.WithSettings(clickhouse.Settings{"select_sequential_consistency": 1}))
 	}
 	rows, err := r.Conn.Query(sctx, fmt.Sprintf(`
-SELECT version, argMax(name, applied_at), argMax(checksum, applied_at), argMax(status, applied_at), max(applied_at)
+SELECT version, argMax(name, applied_at), argMax(checksum, applied_at), argMax(status, applied_at), argMax(topology, applied_at), max(applied_at)
 FROM %s.%s WHERE scope = ? GROUP BY version ORDER BY version`, r.Topo.Database, StateTable), r.Scope)
 	if err != nil {
 		return nil, fmt.Errorf("migrate: read state: %w", err)
@@ -147,7 +148,7 @@ FROM %s.%s WHERE scope = ? GROUP BY version ORDER BY version`, r.Topo.Database, 
 	out := map[uint64]State{}
 	for rows.Next() {
 		var s State
-		if err := rows.Scan(&s.Version, &s.Name, &s.Checksum, &s.Status, &s.AppliedAt); err != nil {
+		if err := rows.Scan(&s.Version, &s.Name, &s.Checksum, &s.Status, &s.Topology, &s.AppliedAt); err != nil {
 			return nil, err
 		}
 		out[s.Version] = s
@@ -181,6 +182,9 @@ func (r *Runner) Up(ctx context.Context, migs []Migration) ([]Applied, error) {
 			switch s.Status {
 			case StatusApplied:
 				if s.Checksum != rend.Checksum {
+					if s.Topology != r.Topo.String() {
+						return done, fmt.Errorf("migrate: %s/%d_%s was applied for topology %s but this target renders %s; roll it back first (bench migrate down, or a fresh bench run)", r.Scope, m.Version, m.Name, s.Topology, r.Topo.String())
+					}
 					return done, fmt.Errorf("migrate: %s/%d_%s was applied with a different checksum (edited after apply? ship a new migration instead)", r.Scope, m.Version, m.Name)
 				}
 				continue

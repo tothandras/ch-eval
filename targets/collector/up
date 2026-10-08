@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# targets/collector/up <host:native-port> <database>
+# Starts the pinned OpenTelemetry Collector (host network) exporting to the given
+# ClickHouse database. Credentials, when needed, come from CH_USER/CH_PASSWORD in
+# the environment (never from files). Waits for the health endpoint.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+addr="${1:?usage: up <host:native-port> <database>}"
+db="${2:?usage: up <host:native-port> <database>}"
+image="${OTELCOL_IMAGE:-otel/opentelemetry-collector-contrib:0.162.0}"
+name=cheval-otelcol
+docker rm -f "$name" >/dev/null 2>&1 || true
+docker run -d --name "$name" --network host --log-opt max-size=10m --log-opt max-file=2 \
+  -e CH_ENDPOINT="tcp://$addr?dial_timeout=10s" -e CH_DATABASE="$db" \
+  -e CH_USER="${CH_USER:-default}" -e CH_PASSWORD="${CH_PASSWORD:-}" \
+  -v "$ROOT/targets/collector/config.yaml:/etc/otelcol-contrib/config.yaml:ro" \
+  --label ch-eval=collector "$image" >/dev/null
+for _ in $(seq 1 60); do
+  if curl -sf http://127.0.0.1:13133/ >/dev/null 2>&1; then echo "collector up: $image -> $addr/$db"; exit 0; fi
+  sleep 1
+done
+docker logs --tail 50 "$name" >&2
+echo "collector did not become healthy" >&2
+exit 1

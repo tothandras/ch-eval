@@ -1,0 +1,1 @@
+{"workload": "otel-traces", "database": "otel_traces_exporter_default", "tables": ["otel_traces"], "generator": "otel-traces"}

@@ -1,0 +1,2 @@
+{{ dropDistributed "otel_logs" }};
+DROP TABLE IF EXISTS {{ db }}.{{ table "otel_logs" }} {{ onCluster }} SYNC;

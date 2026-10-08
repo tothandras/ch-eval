@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -34,6 +35,7 @@ import (
 	"github.com/tothandras/ch-eval/bench/scenario"
 	"github.com/tothandras/ch-eval/bench/seed"
 	"github.com/tothandras/ch-eval/bench/target"
+	"github.com/tothandras/ch-eval/bench/workloads"
 )
 
 func main() {
@@ -65,6 +67,10 @@ type flags struct {
 	mixedValue      bool
 	skipSeed        bool
 	allowDrift      bool
+	ingestPath      string
+	collectorURL    string
+	manageCollector bool
+	profile         string
 	timeEnd         string // optional RFC3339 pin for seed TimeEnd; shared across scenarios and targets for byte-identical time windows
 }
 
@@ -110,11 +116,15 @@ func newRootCmd() *cobra.Command {
 	cmd.Flags().Uint64Var(&f.rngSeed, "seed", 42, "RNG seed for deterministic data generation")
 	cmd.Flags().IntVar(&f.namespaces, "namespaces", 1, "number of namespaces to spread seeded rows across (multi-tenant table)")
 	cmd.Flags().BoolVar(&f.mixedValue, "mixed-value", false, "emit baseline `value` in mixed JSON storage (number/string/bigint) to exercise the type-agnostic correctness fix")
+	cmd.Flags().StringVar(&f.ingestPath, "ingest-path", "direct", "OTel workloads: direct (native insert with the exporter's mapping) or collector (OTLP through the OpenTelemetry Collector)")
+	cmd.Flags().StringVar(&f.collectorURL, "collector-url", "http://127.0.0.1:4318", "OTLP/HTTP endpoint of the collector for --ingest-path collector")
+	cmd.Flags().BoolVar(&f.manageCollector, "manage-collector", true, "start targets/collector for each scenario (pointed at its database) and stop it afterwards")
+	cmd.Flags().StringVar(&f.profile, "profile", "", "generator profile (otel-metrics: high-card for >= 100k series)")
 	cmd.Flags().BoolVar(&f.allowDrift, "allow-drift", false, "run even when the live target differs from its manifest (recorded in run.json)")
 	cmd.Flags().BoolVar(&f.skipSeed, "skip-seed", false, "skip the fresh migrate+seed (apply pending migrations only, query existing data)")
 	cmd.Flags().StringVar(&f.timeEnd, "time-end", "", "pin seed TimeEnd (RFC3339, e.g. 2026-06-01T00:00:00Z); required for cross-target parity. Default: time.Now() truncated to the minute.")
 	cmd.SilenceUsage = true
-	cmd.AddCommand(newCompareCmd(), newCogsCmd(), newMigrateCmd())
+	cmd.AddCommand(newCompareCmd(), newCogsCmd(), newMigrateCmd(), newProbeCmd(), newFeatureMatrixCmd())
 	return cmd
 }
 
@@ -251,11 +261,26 @@ func run(ctx context.Context, f *flags) error {
 			return err
 		}
 		table := sc.Config.Tables[0]
+		gen, err := workloads.Get(sc.Config.Generator)
+		if err != nil {
+			conn.Close()
+			return fmt.Errorf("%s: %w", sc.Scope(), err)
+		}
+		wopts, err := f.workloadOpts(m)
+		if err != nil {
+			conn.Close()
+			return err
+		}
+		params, err := gen.Params(wopts)
+		if err != nil {
+			conn.Close()
+			return fmt.Errorf("%s: params: %w", sc.Scope(), err)
+		}
 
 		var ingest *runner.IngestResult
 		var seedBlock *runs.SeedBlock
 		if !f.skipSeed {
-			ingest, seedBlock, err = doSeed(ctx, conn, admin, m, sc, f)
+			ingest, seedBlock, err = doSeed(ctx, conn, admin, m, sc, gen, wopts, host, port, f)
 			if err != nil {
 				conn.Close()
 				return err
@@ -275,13 +300,14 @@ func run(ctx context.Context, f *flags) error {
 		// Capture the index-pruning signal once (it's a property of the table +
 		// index, independent of repeat/concurrency/cache). Attached to the
 		// matching query's results below.
-		pruning := captureIndexPruning(ctx, conn, queries, table, defaultParams(f))
+		pruning := captureIndexPruning(ctx, conn, queries, table, params)
 
 		// Capture each query's normalized result digest once (a property of
 		// (scenario, query, params), independent of the timed variants). Stored in
 		// the run JSON so `bench compare` can check value parity across scenarios
 		// and targets with no extra DB round-trip.
-		valueParity := captureValueDigests(ctx, conn, sc.Name, queries, f)
+		from, to := gen.Window(wopts)
+		valueParity := captureValueDigests(ctx, conn, sc.Name, append(append([]runner.Query{}, queries...), sc.ParityQueries()...), params, from, to, f.timeEnd)
 		conn.Close()
 
 		var results []runner.BenchResult
@@ -298,7 +324,7 @@ func run(ctx context.Context, f *flags) error {
 						Iterations:  f.iterations,
 						Concurrency: conc,
 						ColdCache:   cold,
-						Params:      defaultParams(f),
+						Params:      params,
 						Scenario:    sc.Name,
 						SweepID:     sweepID,
 						CPUProbe:    cpuProbe,
@@ -458,21 +484,12 @@ func captureIndexPruning(ctx context.Context, conn driver.Conn, queries []runner
 // digests, gated on an identical window. Best-effort: a per-query failure is
 // recorded as a digest error, never aborts the run; returns nil only if params
 // can't be built at all.
-func captureValueDigests(ctx context.Context, conn driver.Conn, scenarioName string, queries []runner.Query, f *flags) *runner.ValueParity {
-	params := defaultParams(f)
-	// Record the window as a readable UTC wall-clock string (params["from"]/["to"]
-	// are now Unix-second integers — TZ-independent for the SQL, but opaque in the
-	// report and the compare-gate). Derived from the same resolved TimeEnd.
-	cfg0 := seed.DefaultConfig()
-	te := cfg0.TimeEnd
-	if t, err := f.resolveTimeEnd(); err == nil {
-		te = t
-	}
+func captureValueDigests(ctx context.Context, conn driver.Conn, scenarioName string, queries []runner.Query, params map[string]string, from, to time.Time, timeEnd string) *runner.ValueParity {
 	const utcFmt = "2006-01-02 15:04:05"
 	vp := &runner.ValueParity{
-		From:    te.Add(-cfg0.TimeSpan).UTC().Format(utcFmt),
-		To:      te.UTC().Format(utcFmt),
-		TimeEnd: f.timeEnd,
+		From:    from.UTC().Format(utcFmt),
+		To:      to.UTC().Format(utcFmt),
+		TimeEnd: timeEnd,
 		Digests: map[string]runner.QueryDigest{},
 	}
 	for _, q := range queries {
@@ -529,109 +546,111 @@ func hostPort(opts *clickhouse.Options) (string, int, error) {
 	return h, port, nil
 }
 
-// doSeed inserts the generated events into the scenario's main table (the
-// Distributed table on a sharded target). Seeding sets async_insert explicitly:
-// 26.2+ servers default async_insert=1, and the harness must not inherit a
-// server default that differs across targets. On a sharded target the insert is
-// synchronous (distributed_foreground_insert=1) so the data is on the shards when
-// the timed queries start; on a replicated target the replicas are synced before
-// measuring so digests do not depend on which replica answers.
-func doSeed(ctx context.Context, conn, admin driver.Conn, m target.Manifest, sc scenario.Scenario, f *flags) (*runner.IngestResult, *runs.SeedBlock, error) {
-	if sc.Config.Generator != "openmeter-events" {
-		return nil, nil, fmt.Errorf("%s: generator %q is not registered", sc.Scope(), sc.Config.Generator)
-	}
-	cfg := seed.DefaultConfig()
-	cfg.Table = sc.Config.Database + "." + sc.Config.Tables[0]
-	cfg.Rows = f.rows
-	cfg.BatchSize = f.batchSize
-	cfg.AsyncInsert = f.asyncInsert
-	cfg.WaitAsyncInsert = f.waitAsyncInsert
-	cfg.Seed = f.rngSeed
-	cfg.Namespaces = f.namespaces
-	cfg.MixedValueStorage = f.mixedValue
-	cfg.Settings = map[string]any{"async_insert": 0}
-	if m.Dialect == "replicated" && m.Shards > 1 {
-		cfg.Settings["distributed_foreground_insert"] = 1
-	}
+// workloadOpts builds the generator options. Seeding sets async_insert
+// explicitly: 26.2+ servers default async_insert=1, and the harness must not
+// inherit a server default that differs across targets. On a sharded target the
+// insert is synchronous (distributed_foreground_insert=1) so the data is on the
+// shards when the timed queries start.
+func (f *flags) workloadOpts(m target.Manifest) (workloads.Opts, error) {
 	te, err := f.resolveTimeEnd()
 	if err != nil {
-		return nil, nil, err
+		return workloads.Opts{}, err
 	}
-	cfg.TimeEnd = te // shared across scenarios and targets when --time-end is set → identical windows
+	settings := map[string]any{"async_insert": 0}
+	if f.asyncInsert {
+		settings["async_insert"] = 1
+		settings["wait_for_async_insert"] = map[bool]int{true: 1, false: 0}[f.waitAsyncInsert]
+	}
+	if m.Dialect == "replicated" && m.Shards > 1 {
+		settings["distributed_foreground_insert"] = 1
+	}
+	return workloads.Opts{
+		Rows: f.rows, BatchSize: f.batchSize, Seed: f.rngSeed, Namespaces: max(f.namespaces, 1), MixedValue: f.mixedValue,
+		TimeEnd: te, Settings: settings, IngestPath: f.ingestPath, CollectorURL: f.collectorURL, Profile: f.profile,
+	}, nil
+}
 
-	fmt.Printf(" seed: %d rows into %s (batch=%d, async=%v, namespaces=%d) ...\n",
-		cfg.Rows, cfg.Table, cfg.BatchSize, cfg.AsyncInsert, max(f.namespaces, 1))
-	res, err := seed.Run(ctx, conn, cfg)
+// doSeed loads the scenario through its registered generator. The collector path
+// starts the pinned collector for the scenario's database, waits until every
+// table holds the expected rows (the exporter inserts asynchronously and may
+// retry), and stops it. On a replicated target the replicas are synced before
+// measuring so digests do not depend on which replica answers.
+func doSeed(ctx context.Context, conn, admin driver.Conn, m target.Manifest, sc scenario.Scenario, gen workloads.Generator, o workloads.Opts, host string, port int, f *flags) (*runner.IngestResult, *runs.SeedBlock, error) {
+	collector := o.IngestPath == "collector"
+	if collector && f.manageCollector {
+		addr := fmt.Sprintf("%s:%d", host, port)
+		if out, err := exec.CommandContext(ctx, "targets/collector/up", addr, sc.Config.Database).CombinedOutput(); err != nil {
+			return nil, nil, fmt.Errorf("collector up: %v: %s", err, out)
+		}
+		defer func() {
+			if out, err := exec.Command("targets/collector/down").CombinedOutput(); err != nil {
+				fmt.Fprintf(os.Stderr, "warning: collector down: %v: %s\n", err, out)
+			}
+		}()
+	}
+	fmt.Printf(" seed: %s, %d rows into %s (path=%s, batch=%d, settings=%v) ...\n",
+		sc.Config.Generator, o.Rows, sc.Config.Database, firstNonEmpty(o.IngestPath, "direct"), o.BatchSize, o.Settings)
+	start := time.Now()
+	res, err := gen.Seed(ctx, conn, sc.Config.Database, sc.Config.Tables, o)
 	if err != nil {
 		return nil, nil, err
 	}
-	fmt.Printf(" seed done: %d events in %s (%.0f events/sec)\n",
-		res.Rows, res.Duration.Round(time.Millisecond), res.EventsPerSecond)
+	if collector {
+		// The send loop returns once the collector accepted the data; the rows are
+		// in ClickHouse only after the exporter's batches and async inserts land.
+		if err := waitRows(ctx, conn, sc.Config.Database, res.Rows, 10*time.Minute); err != nil {
+			return nil, nil, err
+		}
+		res.Ingest.DurationSeconds = time.Since(start).Seconds()
+		res.Ingest.EventsPerSecond = float64(res.Ingest.Rows) / res.Ingest.DurationSeconds
+	}
+	fmt.Printf(" seed done: %d rows in %.1fs (%.0f rows/sec) %v\n", res.Ingest.Rows, res.Ingest.DurationSeconds, res.Ingest.EventsPerSecond, res.Notes)
 
 	if m.Dialect == "replicated" && m.Replicas > 1 {
-		q := fmt.Sprintf("SYSTEM SYNC REPLICA ON CLUSTER '%s' %s.%s", m.Cluster, sc.Config.Database, sc.PhysicalTable(m))
-		if err := admin.Exec(ctx, q); err != nil {
-			return nil, nil, fmt.Errorf("sync replicas after seed: %w", err)
+		for _, t := range sc.PhysicalTables(m) {
+			q := fmt.Sprintf("SYSTEM SYNC REPLICA ON CLUSTER '%s' %s.%s", m.Cluster, sc.Config.Database, t)
+			if err := admin.Exec(ctx, q); err != nil {
+				return nil, nil, fmt.Errorf("sync replicas after seed: %w", err)
+			}
 		}
 	}
-	settings := map[string]any{}
-	for k, v := range cfg.Settings {
-		settings[k] = v
-	}
-	if cfg.AsyncInsert {
-		settings["async_insert"] = 1
-		settings["wait_for_async_insert"] = map[bool]int{true: 1, false: 0}[cfg.WaitAsyncInsert]
-	}
 	block := &runs.SeedBlock{
-		Generator: sc.Config.Generator, Rows: res.Rows, RNGSeed: cfg.Seed, Namespaces: max(f.namespaces, 1),
-		TimeEnd: cfg.TimeEnd.UTC().Format(time.RFC3339), Table: cfg.Table, Settings: settings,
+		Generator: sc.Config.Generator, Rows: res.Ingest.Rows, RNGSeed: o.Seed, Namespaces: o.Namespaces,
+		TimeEnd: o.TimeEnd.UTC().Format(time.RFC3339), Table: sc.Config.Database + "." + sc.Config.Tables[0], Settings: o.Settings,
+		IngestPath: firstNonEmpty(o.IngestPath, "direct"), Profile: o.Profile, TableRows: res.Rows, Notes: res.Notes,
 	}
-	return runner.FromSeedResult(res), block, nil
+	return res.Ingest, block, nil
 }
 
-// defaultParams returns the v1 fixed parameter set documented in
-// scenarios/README.md as already-rendered SQL literals (clickhouse-benchmark
-// does not support bound parameters; we substitute them ourselves). Per-scenario
-// manifests are a future change.
-func defaultParams(f *flags) map[string]string {
-	cfg := seed.DefaultConfig()
-	// Use the same TimeEnd the seeder used so query from/to cover the seeded span
-	// exactly. With --time-end pinned this is shared across scenarios; without it,
-	// it falls back to the seeder default (run() has already validated the flag).
-	if te, err := f.resolveTimeEnd(); err == nil {
-		cfg.TimeEnd = te
-	}
-	subjects := seed.Subjects(10)
-	from := cfg.TimeEnd.Add(-cfg.TimeSpan)
-
-	subjectsLit := make([]string, len(subjects))
-	for i, s := range subjects {
-		subjectsLit[i] = sqlString(s)
-	}
-
-	return map[string]string{
-		"namespace": sqlString(cfg.Namespace),
-		"type":      sqlString(cfg.Types[0]),
-		// from/to are rendered as Unix-second integers, NOT wall-clock string
-		// literals: a bare 'YYYY-MM-DD hh:mm:ss' passed to toDateTime() is parsed
-		// in the server/session timezone (e.g. Europe/Budapest), which shifts the
-		// scan window off the UTC instants the seeder wrote and silently drops the
-		// edge hours. A Unix timestamp is timezone-independent, so toDateTime({from})
-		// resolves to exactly the intended instant on any server.
-		"from":     strconv.FormatInt(from.UTC().Unix(), 10),
-		"to":       strconv.FormatInt(cfg.TimeEnd.UTC().Unix(), 10),
-		"subjects": "(" + strings.Join(subjectsLit, ", ") + ")",
-		"group1":   sqlString(cfg.Group1[0]),
-		"group2":   sqlString(cfg.Group2[0]),
-		// LLM-meter dim filter (kong.llm_request model groupBy): a model value the
-		// seeder emits, so dim-filtered queries render against real seed data.
-		"model": sqlString("claude-haiku"),
+// waitRows polls until each table holds exactly the expected rows. More rows than
+// expected means the ingest path duplicated data, which breaks path parity.
+func waitRows(ctx context.Context, conn driver.Conn, db string, want map[string]uint64, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for {
+		done := true
+		for t, n := range want {
+			var got uint64
+			if err := conn.QueryRow(ctx, fmt.Sprintf("SELECT count() FROM %s.%s", db, t)).Scan(&got); err != nil {
+				return err
+			}
+			if got > n {
+				return fmt.Errorf("%s.%s holds %d rows, expected %d: the ingest path duplicated data", db, t, got, n)
+			}
+			done = done && got == n
+		}
+		if done {
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timed out waiting for %v rows in %s", want, db)
+		}
+		time.Sleep(time.Second)
 	}
 }
 
-// sqlString quotes s as a ClickHouse string literal. Values used here come
-// from the seeder's own config (not user input), so escaping just needs to
-// handle the apostrophe case.
-func sqlString(s string) string {
-	return "'" + strings.ReplaceAll(s, "'", "''") + "'"
+func firstNonEmpty(a, b string) string {
+	if a != "" {
+		return a
+	}
+	return b
 }

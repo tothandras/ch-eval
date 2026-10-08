@@ -18,9 +18,9 @@
 - [x] 2.4 Results layout `results/<workload>/<scenario>/<target>/<run-id>/`; `--target`; workload-nested discovery (OpenMeter queries byte-identical)
 - [x] 2.5 `bench migrate` (render/up/down/status/verify/force), `schema_migrations_ch`, lint, cost capture (`--measure`); port the OpenMeter inits to templated migrations
 - [ ] 2.6 Migration tests (up→down→up→up) on single, replicated (compose cluster and kind) for both builds — compose done for both builds (`TestMigrationLifecycle`, `CH_EVAL_IT_TARGETS`); kind pending
-- [ ] 2.7 Probe runner plus `docs/feature-matrix.yaml` plus the generator for `feature-matrix.md`; implement the locally runnable probes
-- [ ] 2.8 OTel generators (traces, metrics, logs), deterministic with unit tests; direct-insert mappers for all variants
-- [ ] 2.9 Collector ingest path (compose service, `create_schema: false`) plus the path-parity test
+- [ ] 2.7 Probe runner plus `docs/feature-matrix.yaml` plus the generator for `feature-matrix.md`; implement the locally runnable probes — runner (`bench probe`), YAML (85 rows), generator (`bench feature-matrix`) and 49 probes (44 SQL + 5 Go) done; all pass on altinity single and 1×2; upstream-oss and kind runs pending
+- [x] 2.8 OTel generators (traces, metrics, logs), deterministic with unit tests; direct-insert mappers for all variants (exporter-default and clickstack, ported by `migrations/tools/port_otel_ddl.py`)
+- [x] 2.9 Collector ingest path (compose service, `create_schema: false`) plus the path-parity test — `targets/collector`, `--ingest-path collector`, `bench compare --runs`; full-table fingerprints identical for all six OTel scenarios
 - [ ] 2.10 Cross-target `bench compare` with parity gate; local parity green for every workload and scenario on altinity vs upstream-oss — compare and gate done; OpenMeter parity green (34/34, 30/30) on single, 1×2, 1×2 s3 and 2×2 for both builds; OTel pending
 - [ ] 2.11 CI workflow: lint, unit tests, `openspec validate`, migration tests, smoke run on altinity and upstream-oss (note: 10 forked files are not gofmt-clean; format them in a separate no-behaviour-change commit before gofmt becomes a gate)
 - [ ] 2.12 `replica-consistency` experiment implemented and smoke-tested on local-cluster and kind (no conclusions)

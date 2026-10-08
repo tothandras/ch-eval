@@ -1,0 +1,10 @@
+{{ dropDistributed "otel_metrics_gauge" }};
+DROP TABLE IF EXISTS {{ db }}.{{ table "otel_metrics_gauge" }} {{ onCluster }} SYNC;
+{{ dropDistributed "otel_metrics_sum" }};
+DROP TABLE IF EXISTS {{ db }}.{{ table "otel_metrics_sum" }} {{ onCluster }} SYNC;
+{{ dropDistributed "otel_metrics_histogram" }};
+DROP TABLE IF EXISTS {{ db }}.{{ table "otel_metrics_histogram" }} {{ onCluster }} SYNC;
+{{ dropDistributed "otel_metrics_exponential_histogram" }};
+DROP TABLE IF EXISTS {{ db }}.{{ table "otel_metrics_exponential_histogram" }} {{ onCluster }} SYNC;
+{{ dropDistributed "otel_metrics_summary" }};
+DROP TABLE IF EXISTS {{ db }}.{{ table "otel_metrics_summary" }} {{ onCluster }} SYNC;

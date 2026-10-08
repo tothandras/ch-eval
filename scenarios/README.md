@@ -8,14 +8,31 @@ Current variants of the `openmeter` workload:
 - `openmeter/baseline-openmeter/` — Verbatim reproduction of OpenMeter's `om_events` (`data String`, queried via `JSON_VALUE`). The reference.
 - `openmeter/proposal/` — **The recommended default** of the forked harness. Combines `data JSON` + `CODEC(ZSTD(3))` + a `bloom_filter` skip index on `id`, queried via native subcolumns. Includes the full meter-query set plus `lookup_by_id.sql` (so the `id` bloom is exercised) and the extra grouped Kong api variants.
 
-The OTel workloads (`otel-traces`, `otel-metrics`, `otel-logs`) are added in
-Phase 2–5 (see `openspec/changes/cross-target-evaluation/`).
+OTel workloads (`otel-traces`, `otel-logs`, `otel-metrics`), each with two
+variants:
+
+- `exporter-default/` — the collector-contrib ClickHouse exporter's own DDL
+  (v0.162.0, `json: false`, text indexes).
+- `clickstack/` — ClickStack's schema (hyperdx seeds), including its
+  key/value rollup views.
+
+They are ported verbatim apart from placeholders by
+`migrations/tools/port_otel_ddl.py` ([ADR-0004](../docs/adr/0004-otel-scenarios.md)).
+Each variant has its own database, `<workload>_<variant>` (for example
+`otel_traces_clickstack`). A `tuned` variant is added in Phase 4/5 from A/B
+evidence.
+
+Generators (`generators/otel`) are deterministic in `--seed` and
+`--time-end`. `--rows` counts spans, log records, or metric points across the
+five metric tables. `--ingest-path collector` loads the same data through the
+pinned OpenTelemetry Collector instead of the direct mapper.
 
 ```
 scenarios/<workload>/<variant>/
   scenario.json     # workload, database, logical tables (first = seeded table), generator
   init/             # migrations: YYYYMMDDHHMMSS_name.up.sql[.tmpl] + .down.sql[.tmpl]
   queries/          # one .sql file per benchmark query (one SELECT each), plus mix.json
+  parity/           # optional untimed checks digested with the queries (full-table fingerprints)
 ```
 
 `scenario.json`:

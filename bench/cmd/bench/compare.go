@@ -28,7 +28,7 @@ import (
 // different tiers, label the output "smoke, not performance".
 func newCompareCmd() *cobra.Command {
 	var resultsDir, workload, scenarioName, targetName string
-	var targets, scenarios []string
+	var targets, scenarios, runDirs []string
 	cmd := &cobra.Command{
 		Use:   "compare",
 		Short: "Compare the latest runs across targets (or scenarios) with a value-parity gate",
@@ -37,6 +37,21 @@ func newCompareCmd() *cobra.Command {
 			var sides []side
 			crossTarget := len(targets) > 0
 			switch {
+			case len(runDirs) >= 2:
+				// explicit runs, for example the same scenario and target loaded
+				// through two ingest paths (path parity)
+				crossTarget = true
+				for _, d := range runDirs {
+					r, path, err := runs.Read(d)
+					if err != nil {
+						return err
+					}
+					label := r.Target.Name + " " + r.RunID
+					if r.Seed != nil {
+						label += " (" + r.Seed.IngestPath + ")"
+					}
+					sides = append(sides, side{label: label, run: r, path: path})
+				}
 			case crossTarget && len(scenarios) == 0 && scenarioName != "" && len(targets) >= 2:
 				for _, t := range targets {
 					r, path, err := runs.Latest(resultsDir, workload, scenarioName, t)
@@ -54,7 +69,7 @@ func newCompareCmd() *cobra.Command {
 					sides = append(sides, side{label: sc, run: r, path: path})
 				}
 			default:
-				return fmt.Errorf("use either --scenario S --targets a,b[,...] or --target T --scenarios A,B[,...]")
+				return fmt.Errorf("use --scenario S --targets a,b[,...], --target T --scenarios A,B[,...], or --runs <run dir>,<run dir>[,...]")
 			}
 			return compareSides(os.Stdout, sides, crossTarget)
 		},
@@ -65,6 +80,7 @@ func newCompareCmd() *cobra.Command {
 	cmd.Flags().StringSliceVar(&targets, "targets", nil, "targets <platform>/<tier>, baseline first")
 	cmd.Flags().StringVar(&targetName, "target", "", "target for a cross-scenario compare")
 	cmd.Flags().StringSliceVar(&scenarios, "scenarios", nil, "scenarios to compare on --target, baseline first")
+	cmd.Flags().StringSliceVar(&runDirs, "runs", nil, "explicit run directories (or run.json files), baseline first")
 	cmd.SilenceUsage = true
 	return cmd
 }
@@ -193,7 +209,7 @@ func compareValues(w io.Writer, base, cand runner.Run, baseName, candName string
 		c, ok := cp.Digests[n]
 		switch {
 		case !ok:
-			fmt.Fprintf(w, "| %s | _(candidate only)_ | %d |\n", n, b.Rows)
+			fmt.Fprintf(w, "| %s | _(base only)_ | %d |\n", n, b.Rows)
 			missing++
 		case b.Error != "" || c.Error != "":
 			fmt.Fprintf(w, "| %s | ERROR | — |\n", n)
@@ -215,7 +231,7 @@ func compareValues(w io.Writer, base, cand runner.Run, baseName, candName string
 			missing++
 		}
 	}
-	fmt.Fprintf(w, "\nMATCH=%d DIFFERS=%d (candidate-only=%d)\n", match, differ, missing)
+	fmt.Fprintf(w, "\nMATCH=%d DIFFERS=%d (one side only=%d)\n", match, differ, missing)
 	if differ > 0 {
 		return fmt.Errorf("value parity: %d quer(y/ies) differ between %s and %s: %s",
 			differ, baseName, candName, strings.Join(differing, ", "))

@@ -1,0 +1,1 @@
+{"workload": "otel-metrics", "database": "otel_metrics_exporter_default", "tables": ["otel_metrics_gauge", "otel_metrics_sum", "otel_metrics_histogram", "otel_metrics_exponential_histogram", "otel_metrics_summary"], "generator": "otel-metrics"}

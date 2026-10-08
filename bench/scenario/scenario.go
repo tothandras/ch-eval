@@ -105,6 +105,26 @@ func (s Scenario) Queries() []runner.Query {
 	return runner.LoadQueries(rs)
 }
 
+// ParityQueries loads parity/*.sql: untimed checks whose digests prove two runs
+// stored identical data (for example a hash over every inserted column). They are
+// named "parity/<file>" in the run's value digests.
+func (s Scenario) ParityQueries() []runner.Query {
+	pdir := filepath.Join(s.Dir, "parity")
+	entries, _ := os.ReadDir(pdir)
+	rs := runner.Scenario{Name: s.Name, Dir: s.Dir}
+	for _, e := range entries {
+		if strings.HasSuffix(e.Name(), ".sql") {
+			rs.QueryDirs = append(rs.QueryDirs, filepath.Join(pdir, e.Name()))
+		}
+	}
+	sort.Strings(rs.QueryDirs)
+	qs := runner.LoadQueries(rs)
+	for i := range qs {
+		qs[i].Name = "parity/" + qs[i].Name
+	}
+	return qs
+}
+
 // PhysicalTable is the table holding rows on a shard (the main table, or its
 // shard-local table on sharded topologies).
 func (s Scenario) PhysicalTable(m target.Manifest) string {
@@ -112,6 +132,18 @@ func (s Scenario) PhysicalTable(m target.Manifest) string {
 		return s.Config.Tables[0] + "_local"
 	}
 	return s.Config.Tables[0]
+}
+
+// PhysicalTables are the tables holding rows on a shard, for every logical table.
+func (s Scenario) PhysicalTables(m target.Manifest) []string {
+	out := make([]string, 0, len(s.Config.Tables))
+	for _, t := range s.Config.Tables {
+		if m.Dialect == "replicated" && m.Shards > 1 {
+			t += "_local"
+		}
+		out = append(out, t)
+	}
+	return out
 }
 
 // Prepare applies the scenario's migrations on the target. fresh rolls every

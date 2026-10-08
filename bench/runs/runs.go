@@ -55,6 +55,11 @@ type SeedBlock struct {
 	TimeEnd    string         `json:"time_end"`
 	Table      string         `json:"table"`
 	Settings   map[string]any `json:"settings"`
+	IngestPath string         `json:"ingest_path,omitempty"`
+	Profile    string         `json:"profile,omitempty"`
+	// TableRows is the expected row count per table the generator wrote.
+	TableRows map[string]uint64 `json:"table_rows,omitempty"`
+	Notes     []string          `json:"notes,omitempty"`
 }
 
 // NewRunID returns <UTC timestamp>-<4 hex>; the same id tags any cloud resources.
@@ -99,6 +104,22 @@ func writeJSON(path string, v any) error {
 		return err
 	}
 	return os.WriteFile(path, append(b, '\n'), 0o644)
+}
+
+// Read loads a run from its directory or run.json path.
+func Read(path string) (Run, string, error) {
+	if st, err := os.Stat(path); err == nil && st.IsDir() {
+		path = filepath.Join(path, "run.json")
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return Run{}, "", err
+	}
+	var r Run
+	if err := json.Unmarshal(b, &r); err != nil {
+		return Run{}, "", fmt.Errorf("%s: %w", path, err)
+	}
+	return r, path, nil
 }
 
 // Latest returns the newest valid run (run.json parses and has queries) of a

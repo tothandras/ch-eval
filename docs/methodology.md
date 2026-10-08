@@ -74,6 +74,19 @@ finalized in Phase 7, but the rules below are already binding.
   default single namespace every row lands on one shard, so parity on a
   sharded target also needs a multi-namespace run (`--namespaces 8`).
 
+## OTel ingest paths
+
+- **Direct path (default, for scale).** The OTel workloads load data through a
+  direct native-insert mapper that reproduces the collector-contrib ClickHouse
+  exporter's column mapping.
+- **Collector path (real ingest).** `--ingest-path collector` sends the same
+  generated records through the pinned OpenTelemetry Collector as OTLP/HTTP.
+  The harness then waits until every table holds exactly the expected rows. More
+  rows than expected fails the run, because it means the path duplicated data.
+- **Path parity.** It is proven per scenario by `bench compare --runs <direct
+  run>,<collector run>`. It covers the query digests and the full-table
+  fingerprints in `parity/`.
+
 ## Cross-target verdict rules (to be finalized)
 
 - **Latency and CPU.** Per workload and scenario, compute the median across

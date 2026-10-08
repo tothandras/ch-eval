@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# targets/collector/down: stop the collector and verify it is gone.
+set -euo pipefail
+docker rm -f cheval-otelcol >/dev/null 2>&1 || true
+if docker ps -a --filter label=ch-eval=collector --format '{{.Names}}' | grep -q .; then
+  echo "collector still present" >&2; exit 1
+fi
+echo "down: collector removed"

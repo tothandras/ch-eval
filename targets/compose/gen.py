@@ -23,13 +23,30 @@ def w(name, text):
 
 w('common.xml', f"""
 <clickhouse>
-  <logger><level>information</level><console>1</console></logger>
+  <!-- warning level: information-level console logs filled the Docker log files (many GB per run) -->
+  <logger><level>warning</level><console>1</console></logger>
   <max_server_memory_usage>{a.mem_bytes}</max_server_memory_usage>
   <mark_cache_size>268435456</mark_cache_size>
   <!-- custom settings prefix used by row policies (AICM) and generally harmless -->
   <custom_settings_prefixes>SQL_</custom_settings_prefixes>
   <!-- the COGS async-insert attribution reads this log -->
   <asynchronous_insert_log><database>system</database><table>asynchronous_insert_log</table><flush_interval_milliseconds>7500</flush_interval_milliseconds></asynchronous_insert_log>
+  <!-- Local tiers keep only the logs the harness reads (query_log, part_log,
+       asynchronous_insert_log): the others grow without bound on a laptop or CI disk. -->
+  <trace_log remove="1"/>
+  <text_log remove="1"/>
+  <metric_log remove="1"/>
+  <asynchronous_metric_log remove="1"/>
+  <latency_log remove="1"/>
+  <query_metric_log remove="1"/>
+  <processors_profile_log remove="1"/>
+  <query_thread_log remove="1"/>
+  <query_views_log remove="1"/>
+  <error_log remove="1"/>
+  <session_log remove="1"/>
+  <opentelemetry_span_log remove="1"/>
+  <blob_storage_log remove="1"/>
+  <background_schedule_pool_log remove="1"/>
 </clickhouse>
 """)
 w('users.xml', """
@@ -107,7 +124,7 @@ else:
         raft = ''.join(f'<server><id>{i}</id><hostname>keeper{i}</hostname><port>9234</port></server>' for i in (1, 2, 3))
         w(f'keeper{k}.xml', f"""
 <clickhouse>
-  <logger><level>information</level><console>1</console></logger>
+  <logger><level>warning</level><console>1</console></logger>
   <listen_host>0.0.0.0</listen_host>
   <keeper_server>
     <tcp_port>9181</tcp_port>
@@ -126,12 +143,14 @@ if not a.single:
     image: {a.keeper_image}
     hostname: keeper{k}
     restart: on-failure
+    logging: {{driver: json-file, options: {{max-size: "10m", max-file: "2"}}}}
     volumes:
       - ./config/keeper{k}.xml:/etc/clickhouse-keeper/keeper_config.xml:ro
 """)
     svc.append(f"""  s3:
     image: {a.s3_image}
     hostname: s3
+    logging: {{driver: json-file, options: {{max-size: "10m", max-file: "2"}}}}
     command: ["server", "-s3", "-s3.config=/etc/seaweedfs/s3.json", "-dir=/data", "-volume.max=0", "-master.volumeSizeLimitMB=256"]
     volumes:
       - ./config/s3.json:/etc/seaweedfs/s3.json:ro
@@ -149,6 +168,7 @@ for i, (n, s, r) in enumerate(nodes):
     image: {a.image}
     hostname: {n}
     restart: on-failure
+    logging: {{driver: json-file, options: {{max-size: "10m", max-file: "2"}}}}
     environment: {{CLICKHOUSE_SKIP_USER_SETUP: "1"}}
 {deps}    ports: ["{a.port_base + i}:9000", "{a.port_base - 877 + i}:8123"]
     volumes:

@@ -1,0 +1,5 @@
+DROP TABLE IF EXISTS {{ db }}.otel_traces_trace_id_ts_mv {{ onCluster }} SYNC;
+{{ dropDistributed "otel_traces_trace_id_ts" }};
+DROP TABLE IF EXISTS {{ db }}.{{ table "otel_traces_trace_id_ts" }} {{ onCluster }} SYNC;
+{{ dropDistributed "otel_traces" }};
+DROP TABLE IF EXISTS {{ db }}.{{ table "otel_traces" }} {{ onCluster }} SYNC;
