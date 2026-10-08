@@ -32,7 +32,10 @@ done
 bundle="$state/operator-bundle-$OP_VERSION.yaml"
 [ -f "$bundle" ] || curl -sfL -o "$bundle" "$OP_URL"
 echo "$OP_SHA256  $bundle" | sha256sum -c --quiet
-kubectl apply -f "$bundle" >/dev/null
+# The bundle pulls with imagePullPolicy: Always; kind nodes have no registry
+# access, so the local tier uses the imported images (the only change).
+sed 's/imagePullPolicy: Always/imagePullPolicy: IfNotPresent/' "$bundle" > "$state/operator-bundle.local.yaml"
+kubectl apply -f "$state/operator-bundle.local.yaml" >/dev/null
 kubectl -n kube-system rollout status deploy/clickhouse-operator --timeout=180s >/dev/null
 kubectl apply -f "$state/chk.yaml" >/dev/null
 kubectl apply -f "$state/chi.yaml" >/dev/null
