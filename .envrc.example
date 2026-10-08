@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+eval "$(devenv direnvrc)"
+
+# `use devenv` supports the same options as the `devenv shell` command.
+#
+# To silence all output, use `--quiet`.
+#
+# Example usage: use devenv --quiet --impure --option services.postgres.enable:bool true
+use devenv
+
+# ---------------------------------------------------------------------------
+# ch-eval: copy this file to `.envrc` (git-ignored) and fill in secrets there.
+# Never commit credentials or connection strings.
+#
+# export CLICKHOUSE_DSN_ALTINITY="clickhouse://default:@127.0.0.1:9000/default"
+# export CLICKHOUSE_DSN_UPSTREAM_OSS="clickhouse://default:@127.0.0.1:9001/default"
+# export CLICKHOUSE_DSN_CLOUD="clickhouse://default:<password>@<host>:9440/default?secure=true"
+# export CLICKHOUSE_CLOUD_API_KEY=...        # paid tier only, after approval
+# export CLICKHOUSE_CLOUD_API_SECRET=...
+# export CLICKHOUSE_CLOUD_ORG_ID=...
+# export AWS_PROFILE=...                     # paid tier only, after approval

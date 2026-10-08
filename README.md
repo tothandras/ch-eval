@@ -1,0 +1,54 @@
+# ch-eval: ClickHouse Cloud vs self-managed Altinity, measured
+
+**Question.** For OpenMeter usage events, OTel traces, OTel metrics and OTel
+logs, how do ClickHouse Cloud and self-managed Altinity ClickHouse (OSS)
+compare on capability, performance, cost and operational burden?
+
+**Status.** Phase 1 (plan plus draft feature matrix). No performance
+conclusions yet. See [`PROGRESS.md`](PROGRESS.md) for the live log and
+[`openspec/changes/cross-target-evaluation/`](openspec/changes/cross-target-evaluation/)
+for the plan.
+
+## Targets
+
+| Target | What | Why |
+| --- | --- | --- |
+| `cloud` | ClickHouse Cloud (SharedMergeTree, object storage) | Managed baseline |
+| `altinity` | Altinity Stable `26.3.33.10001.altinitystable`, Altinity operator + ClickHouse Keeper | The candidate |
+| `upstream-oss` | Upstream `26.3.33.24` (same 26.3.33 base), same topology | Separates build effects from version and architecture effects |
+
+## Layout (target state; built in Phase 2)
+
+| Path | Contents |
+| --- | --- |
+| `bench/` | Go harness forked from [`tothandras/clickhouse-benchmarks`](https://github.com/tothandras/clickhouse-benchmarks) (perf runner, value digest, COGS), extended with targets, migrations, probes, compare and report ([ADR-0001](docs/adr/0001-fork-existing-harness.md)) |
+| `targets/` | Per-target `up`/`down`: compose, kind with the Altinity operator, AWS (Terraform), ClickHouse Cloud (API) |
+| `migrations/` | The dialect-aware migration tool and per-workload online changes ([ADR-0003](docs/adr/0003-migration-tool.md)) |
+| `scenarios/<workload>/<variant>/` | `init/` migrations, `queries/`, `mix.json` |
+| `generators/` | Seeded OTel traces, metrics and logs generators. OpenMeter events reuse `bench/seed`. |
+| `results/<workload>/<scenario>/<target>/<run-id>/` | Raw results plus run metadata |
+| `docs/` | [`feature-matrix.md`](docs/feature-matrix.md), [`methodology.md`](docs/methodology.md), [`adr/`](docs/adr/), [`research/`](docs/research/) |
+| `REPORT.md` | Generated from `results/` by `bench report`, never hand-typed |
+
+During Phase 1 the forked harness still uses its original layout:
+`scenarios/<name>/` and `bench/results/`.
+
+## Quick start (forked harness, single target)
+
+```bash
+cp .envrc.example .envrc && direnv allow   # or: devenv shell
+export CLICKHOUSE_DSN="clickhouse://default:@127.0.0.1:9000/default"
+go build -o bin/bench ./bench/cmd/bench
+./bin/bench --scenario baseline-openmeter --scenario proposal --rows 1000000 --time-end 2026-06-09T00:00:00Z
+./bin/bench compare baseline-openmeter proposal
+```
+
+`clickhouse-benchmark` must be on `PATH`. Any ClickHouse server image ships it
+as `/usr/bin/clickhouse`.
+
+## Rules this repo follows
+
+- Synthetic data only.
+- Credentials live only in the environment or the git-ignored `.envrc`.
+- Paid resources are created only after owner approval. Each one is tagged
+  with the run ID and torn down with a verified `down`.

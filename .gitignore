@@ -1,0 +1,59 @@
+# devenv / direnv
+.devenv/
+.devenv.flake.nix
+.devcontainer.json
+.direnv/
+
+# node tooling (deps installed from pnpm-lock.yaml on shell entry)
+node_modules/
+
+# Python venv for the mcp-clickhouse MCP server (managed by devenv + uv;
+# rebuilt from pyproject.toml on shell entry). uv.lock IS committed for
+# reproducible installs; the venv itself is not.
+.venv/
+__pycache__/
+*.pyc
+
+# devenv-managed kubeconfig
+.kube/
+
+# stray clickhouse-server data when started from the repo root with a
+# relative <path> (defensive — .devenv/clickhouse-server/data/ is gitignored
+# under .devenv/ already)
+/data/
+
+# Go
+/bin/
+*.test
+*.out
+
+# editor
+.vscode/
+.idea/
+.DS_Store
+
+# claude code runtime state
+.claude/scheduled_tasks.lock
+
+# local secrets — remote ClickHouse cluster credentials
+.env
+.env.local
+
+# generated prod benchmark queries (embed real customer org/subject IDs)
+scenarios-prod/
+
+# scratch bench run logs (per-invocation stdout; results live in <scenario>/*.json|md)
+bench/results/run-*.log
+
+# ch-eval: secrets live only in the environment / .envrc (copy .envrc.example)
+.envrc
+.env.*
+# terraform state and provider caches (paid tiers)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+# kubeconfigs written by targets/*/up
+kubeconfig*
+# npm (openspec CLI installed via pnpm-lock; ignore stray npm lockfile)
+package-lock.json
