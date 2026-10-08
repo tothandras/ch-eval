@@ -1,0 +1,168 @@
+{
+  "captured_at": "2026-10-08T08:24:26.938820053Z",
+  "manifest": {
+    "name": "upstream-oss/kind",
+    "platform": "upstream-oss",
+    "tier": "kind",
+    "deployment": "kind-1x2",
+    "image": "clickhouse/clickhouse-server:26.3.33.24",
+    "expected_version": "26.3.33.24",
+    "dialect": "replicated",
+    "cluster": "ch-eval",
+    "shards": 1,
+    "replicas": 2,
+    "storage": "local",
+    "storage_policy": "",
+    "shape": {
+      "vcpu_per_replica": null,
+      "gib_per_replica": null
+    },
+    "location": "local-kind",
+    "dsn_env": "CLICKHOUSE_DSN_UPSTREAM_OSS_KIND",
+    "notes": "Local tier: correctness, parity and smoke only (ADR-0005). Altinity operator 0.27.4 on kind; CHK 3 nodes; CHI 1x2.",
+    "ports": {
+      "native_base": 29400,
+      "http_base": 28523
+    },
+    "keeper_image": "clickhouse/clickhouse-keeper:26.3.33.24",
+    "keepers": 3,
+    "mem_bytes_per_node": 1200000000
+  },
+  "dsn_source": "local tier default",
+  "version": "26.3.33.24",
+  "replicas": [
+    {
+      "host": "chi-cheval-ch-eval-0-0-0",
+      "version": "26.3.33.24",
+      "uptime_sec": 467
+    },
+    {
+      "host": "chi-cheval-ch-eval-0-1-0",
+      "version": "26.3.33.24",
+      "uptime_sec": 431
+    }
+  ],
+  "build_options": {
+    "BUILD_TYPE": "RelWithDebInfo",
+    "CXX_COMPILER": "/usr/bin/clang++-21",
+    "GIT_HASH": "211b7286fd9682a62705a8335e2c77500a0969a1",
+    "SYSTEM": "Linux",
+    "SYSTEM_PROCESSOR": "x86_64",
+    "VERSION_DESCRIBE": "v26.3.33.24-lts",
+    "VERSION_FULL": "ClickHouse 26.3.33.24",
+    "VERSION_GITHASH": "211b7286fd9682a62705a8335e2c77500a0969a1",
+    "VERSION_OFFICIAL": " (official build)"
+  },
+  "clusters": [
+    {
+      "cluster": "ch-eval",
+      "shard_num": 1,
+      "replica_num": 1,
+      "host_name": "chi-cheval-ch-eval-0-0"
+    },
+    {
+      "cluster": "ch-eval",
+      "shard_num": 1,
+      "replica_num": 2,
+      "host_name": "chi-cheval-ch-eval-0-1"
+    }
+  ],
+  "macros": {
+    "all-sharded-shard": "0",
+    "cluster": "ch-eval",
+    "installation": "cheval",
+    "replica": "chi-cheval-ch-eval-0-0",
+    "shard": "0"
+  },
+  "disks": [
+    {
+      "name": "default",
+      "type": "Local",
+      "total_bytes": 270553174016,
+      "free_bytes": 11898527744,
+      "object_storage_type": "None"
+    }
+  ],
+  "storage_policies": [
+    "default"
+  ],
+  "changed_settings": {
+    "session": {
+      "connect_timeout_with_failover_ms": "1000",
+      "distributed_aggregation_memory_efficient": "1",
+      "do_not_merge_across_partitions_select_final": "1",
+      "enable_producing_buckets_out_of_order_in_aggregation": "0",
+      "load_balancing": "nearest_hostname",
+      "log_queries": "1",
+      "os_thread_priority": "2",
+      "os_threads_nice_value_query": "2",
+      "parallel_view_processing": "1",
+      "prefer_localhost_replica": "0"
+    },
+    "merge_tree": {},
+    "server": {
+      "async_load_databases": "1",
+      "concurrent_threads_scheduler": "max_min_fair",
+      "concurrent_threads_soft_limit_num": "0",
+      "concurrent_threads_soft_limit_ratio_to_cores": "2",
+      "config-file": "/etc/clickhouse-server/config.xml",
+      "default_database": "default",
+      "dictionaries_lazy_load": "1",
+      "display_secrets_in_show_and_select": "1",
+      "distributed_ddl.path": "/clickhouse/cheval/task_queue/ddl",
+      "distributed_ddl.replicas_path": "/clickhouse/cheval/task_queue/replicas",
+      "format_schema_path": "/var/lib/clickhouse/format_schemas/",
+      "google_protos_path": "/usr/share/clickhouse/protos/",
+      "interserver_http_host": "chi-cheval-ch-eval-0-0",
+      "interserver_http_port": "9009",
+      "keep_alive_timeout": "10",
+      "keeper_hosts": "chk-keeper-keeper-0-0-client.default.svc.cluster.local.:2181",
+      "listen_try": "1",
+      "logger.console": "1",
+      "logger.count": "10",
+      "logger.errorlog": "/var/log/clickhouse-server/clickhouse-server.err.log",
+      "logger.level": "warning",
+      "logger.log": "/var/log/clickhouse-server/clickhouse-server.log",
+      "logger.size": "1000M",
+      "max_concurrent_queries": "1000",
+      "max_server_memory_usage": "1200000000",
+      "max_server_memory_usage_to_ram_ratio": "0.9",
+      "max_thread_pool_size": "10000",
+      "mlock_executable": "1",
+      "mlock_executable_min_total_memory_amount_bytes": "5000000000",
+      "openSSL.client.cacheSessions": "1",
+      "openSSL.client.disableProtocols": "sslv2,sslv3",
+      "openSSL.client.invalidCertificateHandler.name": "RejectCertificateHandler",
+      "openSSL.client.loadDefaultCAFile": "1",
+      "openSSL.client.preferServerCiphers": "1",
+      "openSSL.server.cacheSessions": "1",
+      "openSSL.server.disableProtocols": "sslv2,sslv3",
+      "openSSL.server.invalidCertificateHandler.name": "RejectCertificateHandler",
+      "openSSL.server.loadDefaultCAFile": "1",
+      "openSSL.server.preferServerCiphers": "1",
+      "openSSL.server.verificationMode": "none",
+      "path": "/var/lib/clickhouse/",
+      "query_condition_cache_size": "106700800",
+      "remap_executable": "0",
+      "tmp_path": "/var/lib/clickhouse/tmp/",
+      "total_memory_profiler_step": "4194304",
+      "total_memory_tracker_sample_probability": "0",
+      "uncompressed_cache_size": "8589934592",
+      "user_files_path": "/var/lib/clickhouse/user_files/",
+      "validate_tcp_client_information": "0",
+      "wait_dictionaries_load_at_startup": "1"
+    }
+  },
+  "limits": {
+    "cgroup_max_cpu": 0,
+    "max_threads": 4,
+    "os_memory_total": 16876494848,
+    "cgroup_memory_limit": 1559232512,
+    "max_server_memory_usage": 1200000000
+  },
+  "client": {
+    "hostname": "vm",
+    "go_version": "go1.26.2",
+    "harness_commit": "effdf02"
+  }
+}

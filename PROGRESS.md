@@ -271,9 +271,10 @@ performance (ADR-0005).
   | E6 (kind) | raising `replicasCount` from 2 to 3: the operator registered the host, created the table on it with no DDL from us, and the replica fetched 1M rows, all about 83 s after the patch |
   | E5 (kind) | a pod memory-limit change rolled the 3 hosts one at a time; 140 s to `Completed` |
 - **kind (operator 0.27.4).** Both builds passed the migration lifecycle, all
-  50 probes and a consistency smoke. altinity kind also passed parity against
-  single (`results/parity/local-sharded-kind-*.md`). The upstream kind parity
-  run is in progress.
+  50 probes, a consistency smoke (the same shape as compose: default about 5%
+  stale, quorum and `SYNC REPLICA` 0) and value parity against their single
+  tier for every workload and scenario
+  (`results/parity/local-sharded-kind-*.md`, `local-kind-upstream-*.md`).
 - **s3 storage variants.** `local-cluster-s3-cow` (`cache_on_write_operations=1`,
   Cloud's default) and `local-cluster-s3-smallcache` (256 MiB) both passed
   parity and all 50 probes.
