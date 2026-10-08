@@ -616,10 +616,20 @@ func doSeed(ctx context.Context, conn, admin driver.Conn, m target.Manifest, sc 
 			}
 		}
 	}
+	var cache *runs.CacheSnapshot
+	src := "system.filesystem_cache"
+	if c := m.SystemCluster(); c != "" {
+		src = fmt.Sprintf("clusterAllReplicas('%s', system.filesystem_cache)", c)
+	}
+	var segs, bytes uint64
+	if err := admin.QueryRow(ctx, "SELECT count(), sum(size) FROM "+src).Scan(&segs, &bytes); err == nil && segs > 0 {
+		cache = &runs.CacheSnapshot{Segments: segs, Bytes: bytes}
+	}
 	block := &runs.SeedBlock{
 		Generator: sc.Config.Generator, Rows: res.Ingest.Rows, RNGSeed: o.Seed, Namespaces: o.Namespaces, NamespaceSkew: o.NamespaceSkew,
 		TimeEnd: o.TimeEnd.UTC().Format(time.RFC3339), Table: sc.Config.Database + "." + sc.Config.Tables[0], Settings: o.Settings,
 		IngestPath: firstNonEmpty(o.IngestPath, "direct"), Profile: o.Profile, TableRows: res.Rows, Notes: res.Notes,
+		CacheAfterSeed: cache,
 	}
 	return res.Ingest, block, nil
 }

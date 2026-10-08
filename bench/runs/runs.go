@@ -60,7 +60,16 @@ type SeedBlock struct {
 	Profile       string         `json:"profile,omitempty"`
 	// TableRows is the expected row count per table the generator wrote.
 	TableRows map[string]uint64 `json:"table_rows,omitempty"`
-	Notes     []string          `json:"notes,omitempty"`
+	// CacheAfterSeed is the filesystem-cache occupancy summed over every replica
+	// right after seeding (design D14: what the write path put in the cache).
+	CacheAfterSeed *CacheSnapshot `json:"cache_after_seed,omitempty"`
+	Notes          []string       `json:"notes,omitempty"`
+}
+
+// CacheSnapshot is filesystem-cache occupancy across replicas.
+type CacheSnapshot struct {
+	Segments uint64 `json:"segments"`
+	Bytes    uint64 `json:"bytes"`
 }
 
 // NewRunID returns <UTC timestamp>-<4 hex>; the same id tags any cloud resources.
