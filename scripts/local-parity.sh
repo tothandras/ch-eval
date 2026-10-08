@@ -30,8 +30,10 @@ mkdir -p results/parity
       [ -d "scenarios/$w/$s/init" ] || continue
       echo; echo "---"; echo
       targets_csv=$(IFS=,; echo "${TARGETS[*]}")
-      "$BENCH" compare --workload "$w" --scenario "$s" --targets "$targets_csv" 2>&1 | sed 's/^# Compare/## Compare/'
-      echo; echo "exit status: $?"
+      "$BENCH" compare --workload "$w" --scenario "$s" --targets "$targets_csv" > /tmp/ch-eval-compare.$$ 2>&1
+      status=$?
+      sed 's/^# Compare/## Compare/' /tmp/ch-eval-compare.$$; rm -f /tmp/ch-eval-compare.$$
+      echo; echo "compare exit status: $status (non-zero = parity failed or not established)"
     done
   done
 } > "$out"
