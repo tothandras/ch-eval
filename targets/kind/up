@@ -40,7 +40,8 @@ kubectl -n kube-system rollout status deploy/clickhouse-operator --timeout=180s 
 kubectl apply -f "$state/chk.yaml" >/dev/null
 kubectl apply -f "$state/chi.yaml" >/dev/null
 echo "waiting for CHI cheval to complete ..."
-for _ in $(seq 1 120); do
+# A changed CHI rolls one host at a time; allow 20 minutes.
+for _ in $(seq 1 240); do
   s=$(kubectl get chi cheval -o jsonpath='{.status.status}' 2>/dev/null || true)
   [ "$s" = "Completed" ] && break
   sleep 5
