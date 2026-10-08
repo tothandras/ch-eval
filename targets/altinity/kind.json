@@ -1,0 +1,28 @@
+{
+  "name": "altinity/kind",
+  "platform": "altinity",
+  "tier": "kind",
+  "deployment": "kind-1x2",
+  "image": "altinity/clickhouse-server:26.3.33.10001.altinitystable",
+  "expected_version": "26.3.33.10001.altinitystable",
+  "dialect": "replicated",
+  "cluster": "ch_eval",
+  "shards": 1,
+  "replicas": 2,
+  "storage": "local",
+  "storage_policy": "",
+  "shape": {
+    "vcpu_per_replica": null,
+    "gib_per_replica": null
+  },
+  "location": "local-kind",
+  "ports": {
+    "native_base": 19400,
+    "http_base": 18523
+  },
+  "dsn_env": "CLICKHOUSE_DSN_ALTINITY_KIND",
+  "notes": "Local tier: correctness, parity and smoke only (ADR-0005). Altinity operator 0.27.4 on kind; CHK 3 nodes; CHI 1x2.",
+  "keeper_image": "altinity/clickhouse-keeper:26.3.33.10001.altinitystable",
+  "keepers": 3,
+  "mem_bytes_per_node": 1200000000
+}

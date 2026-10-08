@@ -13,7 +13,9 @@ project="cheval-$platform-$deployment"
 if [ "$(jqr "['dialect']")" = "single" ]; then
   python3 "$ROOT/targets/compose/gen.py" "$state" --project "$project" --image "$image" --port-base "$port" --single
 else
-  python3 "$ROOT/targets/compose/gen.py" "$state" --project "$project" --image "$image" --keeper-image "$kimage" --port-base "$port" --shards "$shards" --replicas "$replicas" --mem-bytes "$(jqr ".get('mem_bytes_per_node', 2500000000)")"
+  cache=(--cache-max-size "$(jqr ".get('s3_cache', {}).get('max_size', '2Gi')")")
+  [ "$(jqr ".get('s3_cache', {}).get('on_write', False)")" = "True" ] && cache+=(--cache-on-write)
+  python3 "$ROOT/targets/compose/gen.py" "$state" --project "$project" --image "$image" --keeper-image "$kimage" --port-base "$port" --shards "$shards" --replicas "$replicas" --mem-bytes "$(jqr ".get('mem_bytes_per_node', 2500000000)")" "${cache[@]}"
 fi
 docker compose -f "$state/docker-compose.yml" up -d >/dev/null 2>&1
 if grep -q '^  s3:' "$state/docker-compose.yml"; then

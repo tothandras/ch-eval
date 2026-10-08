@@ -41,6 +41,12 @@ type Manifest struct {
 		HTTPBase   int `json:"http_base"`
 	} `json:"ports,omitempty"`
 	KeeperImage     string `json:"keeper_image,omitempty"`
+	// S3Cache configures the filesystem cache in front of the s3 disk on compose
+	// tiers (design D14: cache-size cap sweep, cache-on-write variant).
+	S3Cache *struct {
+		MaxSize string `json:"max_size"`
+		OnWrite bool   `json:"on_write"`
+	} `json:"s3_cache,omitempty"`
 	Keepers         int    `json:"keepers,omitempty"`
 	MemBytesPerNode int64  `json:"mem_bytes_per_node,omitempty"`
 }

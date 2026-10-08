@@ -1,0 +1,32 @@
+{
+  "name": "altinity/local-cluster-s3-cow",
+  "platform": "altinity",
+  "tier": "local-cluster",
+  "deployment": "compose-1x2-cow",
+  "image": "altinity/clickhouse-server:26.3.33.10001.altinitystable",
+  "expected_version": "26.3.33.10001.altinitystable",
+  "dialect": "replicated",
+  "cluster": "ch_eval",
+  "shards": 1,
+  "replicas": 2,
+  "storage": "s3",
+  "storage_policy": "s3_cached",
+  "shape": {
+    "vcpu_per_replica": null,
+    "gib_per_replica": null
+  },
+  "location": "local-docker",
+  "ports": {
+    "native_base": 19500,
+    "http_base": 18623
+  },
+  "dsn_env": "CLICKHOUSE_DSN_ALTINITY_LOCAL_CLUSTER_S3_COW",
+  "notes": "Local tier: correctness, parity and smoke only (ADR-0005). s3 mode with cache_on_write_operations=1 (Cloud's default), the D14 fairness variant.",
+  "keeper_image": "altinity/clickhouse-keeper:26.3.33.10001.altinitystable",
+  "keepers": 3,
+  "mem_bytes_per_node": 2500000000,
+  "s3_cache": {
+    "max_size": "2Gi",
+    "on_write": true
+  }
+}

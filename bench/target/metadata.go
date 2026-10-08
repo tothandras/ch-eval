@@ -25,6 +25,7 @@ type Metadata struct {
 	Macros      map[string]string `json:"macros"`
 	Disks       []DiskRow         `json:"disks"`
 	Policies    []string          `json:"storage_policies"`
+	Caches      []CacheRow        `json:"filesystem_caches,omitempty"`
 	Changed     Changed           `json:"changed_settings"`
 	Limits      Limits            `json:"limits"`
 	Client      Client            `json:"client"`
@@ -53,6 +54,17 @@ type DiskRow struct {
 	Type  string `json:"type"`
 	Total uint64 `json:"total_bytes"`
 	Free  uint64 `json:"free_bytes"`
+	// Locality (design D14): object storage type and the filesystem cache in front
+	// of it, when the disk has one.
+	ObjectStorage string `json:"object_storage_type,omitempty"`
+	CachePath     string `json:"cache_path,omitempty"`
+}
+
+// CacheRow is the filesystem cache's live state (system.filesystem_cache totals).
+type CacheRow struct {
+	CachePath  string `json:"cache_path"`
+	Segments   uint64 `json:"segments"`
+	Bytes      uint64 `json:"bytes"`
 }
 
 // Changed holds settings that differ from defaults, per scope.
@@ -140,16 +152,27 @@ func Capture(ctx context.Context, conn driver.Conn, m Manifest, dsnSource, harne
 			errf("clusters", err)
 		}
 	}
-	if rows, err := conn.Query(ctx, "SELECT name, type, total_space, free_space FROM system.disks ORDER BY name"); err == nil {
+	if rows, err := conn.Query(ctx, "SELECT name, toString(type), total_space, free_space, toString(object_storage_type), cache_path FROM system.disks ORDER BY name"); err == nil {
 		for rows.Next() {
 			var d DiskRow
-			if err := rows.Scan(&d.Name, &d.Type, &d.Total, &d.Free); err == nil {
+			if err := rows.Scan(&d.Name, &d.Type, &d.Total, &d.Free, &d.ObjectStorage, &d.CachePath); err == nil {
 				md.Disks = append(md.Disks, d)
 			}
 		}
 		rows.Close()
 	} else {
 		errf("disks", err)
+	}
+	if rows, err := conn.Query(ctx, "SELECT cache_path, count(), sum(size) FROM system.filesystem_cache GROUP BY cache_path ORDER BY cache_path"); err == nil {
+		for rows.Next() {
+			var c CacheRow
+			if rows.Scan(&c.CachePath, &c.Segments, &c.Bytes) == nil {
+				md.Caches = append(md.Caches, c)
+			}
+		}
+		rows.Close()
+	} else {
+		errf("filesystem_cache", err)
 	}
 	if rows, err := conn.Query(ctx, "SELECT DISTINCT policy_name FROM system.storage_policies ORDER BY 1"); err == nil {
 		for rows.Next() {

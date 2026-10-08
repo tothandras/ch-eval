@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# targets/kind/up <platform> <tier>: kind cluster + Altinity operator 0.27.4 + CHK + CHI,
+# exposed on 127.0.0.1 through one port-forward per ClickHouse pod
+# (native native_base+i, HTTP native_base-877+i). Correctness and smoke only.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+platform="${1:?usage: up <platform> <tier>}"; tier="${2:?usage: up <platform> <tier>}"
+man="$ROOT/targets/$platform/$tier.json"
+jq_() { python3 -c "import json,sys; print(json.load(open('$man'))$1)"; }
+cluster="cheval-$platform"
+state="$ROOT/targets/.state/kind-$platform-$tier"
+export KUBECONFIG="$state/kubeconfig"
+mkdir -p "$state"
+OP_VERSION=0.27.4
+OP_SHA256=ec58d6c9215d4c8a6edbd8d55e720d7a3eb9643d7eda6fca1c62df286a8856b3
+OP_URL="https://raw.githubusercontent.com/Altinity/clickhouse-operator/release-$OP_VERSION/deploy/operator/clickhouse-operator-install-bundle.yaml"
+
+python3 "$ROOT/targets/kind/gen.py" "$man" "$state" >/dev/null
+if ! kind get clusters 2>/dev/null | grep -qx "$cluster"; then
+  kind create cluster --name "$cluster" --config "$state/kind-config.yaml" --kubeconfig "$KUBECONFIG" --wait 120s
+fi
+# Nodes cannot pull through the host proxy: load every image from the host.
+# `kind load docker-image` imports with --all-platforms, which fails for images
+# pulled for one platform only, so import the saved image directly.
+node="$cluster-control-plane"
+for img in "altinity/clickhouse-operator:$OP_VERSION" "altinity/metrics-exporter:$OP_VERSION" "$(jq_ "['image']")" "$(jq_ "['keeper_image']")"; do
+  docker image inspect "$img" >/dev/null 2>&1 || docker pull "$img"
+  if ! docker exec "$node" crictl inspecti "$img" >/dev/null 2>&1; then
+    docker save "$img" | docker exec -i "$node" ctr --namespace=k8s.io images import --snapshotter=overlayfs - >/dev/null
+  fi
+done
+bundle="$state/operator-bundle-$OP_VERSION.yaml"
+[ -f "$bundle" ] || curl -sfL -o "$bundle" "$OP_URL"
+echo "$OP_SHA256  $bundle" | sha256sum -c --quiet
+kubectl apply -f "$bundle" >/dev/null
+kubectl -n kube-system rollout status deploy/clickhouse-operator --timeout=180s >/dev/null
+kubectl apply -f "$state/chk.yaml" >/dev/null
+kubectl apply -f "$state/chi.yaml" >/dev/null
+echo "waiting for CHI cheval to complete ..."
+for _ in $(seq 1 120); do
+  s=$(kubectl get chi cheval -o jsonpath='{.status.status}' 2>/dev/null || true)
+  [ "$s" = "Completed" ] && break
+  sleep 5
+done
+[ "$(kubectl get chi cheval -o jsonpath='{.status.status}')" = "Completed" ] || { kubectl get pods -A; echo "CHI not completed" >&2; exit 1; }
+# One port-forward per ClickHouse pod, in shard/replica order.
+native=$(jq_ "['ports']['native_base']")
+"$ROOT/targets/kind/forward" "$platform" "$tier" stop
+i=0
+for pod in $(kubectl get pods -l clickhouse.altinity.com/chi=cheval -o jsonpath='{range .items[*]}{.metadata.labels.clickhouse\.altinity\.com/shard}{" "}{.metadata.labels.clickhouse\.altinity\.com/replica}{" "}{.metadata.name}{"\n"}{end}' | sort -n -k1,1 -k2,2 | awk '{print $3}'); do
+  p=$((native + i)); h=$((native - 877 + i))
+  nohup kubectl port-forward "pod/$pod" "$p:9000" "$h:8123" > "$state/pf-$i.log" 2>&1 &
+  echo $! > "$state/pf-$i.pid"
+  echo "$pod" >> "$state/pf-pods"
+  i=$((i + 1))
+done
+for _ in $(seq 1 60); do
+  curl -sf "http://127.0.0.1:$((native - 877))/" --data-binary "SELECT 1" >/dev/null 2>&1 && break
+  sleep 1
+done
+curl -sf "http://127.0.0.1:$((native - 877))/" --data-binary "SELECT 'up', version(), (SELECT count() FROM system.clusters WHERE cluster = '$(jq_ "['cluster']")') FORMAT TSV"
+echo "native port: $native ($i pods forwarded)"

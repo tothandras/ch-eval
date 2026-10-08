@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# targets/kind/forward <platform> <tier> stop: stop this tier's port-forwards.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+state="$ROOT/targets/.state/kind-$1-$2"
+for f in "$state"/pf-*.pid; do
+  [ -f "$f" ] || continue
+  kill "$(cat "$f")" 2>/dev/null || true
+  rm -f "$f"
+done
+rm -f "$state/pf-pods"

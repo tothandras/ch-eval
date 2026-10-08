@@ -126,7 +126,7 @@ func newRootCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&f.skipSeed, "skip-seed", false, "skip the fresh migrate+seed (apply pending migrations only, query existing data)")
 	cmd.Flags().StringVar(&f.timeEnd, "time-end", "", "pin seed TimeEnd (RFC3339, e.g. 2026-06-01T00:00:00Z); required for cross-target parity. Default: time.Now() truncated to the minute.")
 	cmd.SilenceUsage = true
-	cmd.AddCommand(newCompareCmd(), newCogsCmd(), newMigrateCmd(), newProbeCmd(), newFeatureMatrixCmd(), newConsistencyCmd())
+	cmd.AddCommand(newCompareCmd(), newCogsCmd(), newMigrateCmd(), newProbeCmd(), newFeatureMatrixCmd(), newConsistencyCmd(), newExperimentCmd())
 	return cmd
 }
 

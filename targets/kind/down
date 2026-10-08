@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# targets/kind/down <platform> <tier>: stop port-forwards, delete the kind cluster,
+# and verify that no node container is left.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+platform="${1:?usage: down <platform> <tier>}"; tier="${2:?usage: down <platform> <tier>}"
+cluster="cheval-$platform"
+"$ROOT/targets/kind/forward" "$platform" "$tier" stop
+kind delete cluster --name "$cluster" >/dev/null 2>&1 || true
+if docker ps -a --format '{{.Names}}' | grep -q "^$cluster-"; then
+  echo "down: $cluster containers still present" >&2; exit 1
+fi
+rm -rf "$ROOT/targets/.state/kind-$platform-$tier"
+echo "down: kind cluster $cluster removed"

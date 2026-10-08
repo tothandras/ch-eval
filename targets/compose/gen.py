@@ -16,6 +16,7 @@ ap.add_argument('--keeper-image', default=''); ap.add_argument('--port-base', ty
 ap.add_argument('--shards', type=int, default=1); ap.add_argument('--replicas', type=int, default=2)
 ap.add_argument('--single', action='store_true'); ap.add_argument('--mem-bytes', type=int, default=2_500_000_000)
 ap.add_argument('--s3-image', default='chrislusf/seaweedfs:4.48')
+ap.add_argument('--cache-max-size', default='2Gi'); ap.add_argument('--cache-on-write', action='store_true')
 a = ap.parse_args()
 os.makedirs(os.path.join(a.out, 'config'), exist_ok=True)
 def w(name, text):
@@ -76,7 +77,8 @@ STORAGE = '''  <storage_configuration>
         <type>cache</type>
         <disk>s3</disk>
         <path>/var/lib/clickhouse/disks/s3_cache/</path>
-        <max_size>2Gi</max_size>
+        <max_size>{{cache_max}}</max_size>
+        <cache_on_write_operations>{{cache_on_write}}</cache_on_write_operations>
       </s3_cache>
     </disks>
     <policies>
@@ -117,7 +119,7 @@ else:
 </clickhouse>
 """)
     for n, s, r in nodes:
-        storage = STORAGE.replace('{{node}}', n)
+        storage = STORAGE.replace('{{node}}', n).replace('{{cache_max}}', a.cache_max_size).replace('{{cache_on_write}}', '1' if a.cache_on_write else '0')
         w(f'macros-{n}.xml', f'<clickhouse><macros><cluster>ch_eval</cluster><shard>{s}</shard><replica>{n}</replica></macros>\n{storage}</clickhouse>\n')
     w('s3.json', '{"identities": [{"name": "local", "credentials": [{"accessKey": "local", "secretKey": "local"}], "actions": ["Admin", "Read", "Write", "List", "Tagging"]}]}\n')
     for k in (1, 2, 3):

@@ -1,0 +1,32 @@
+{
+  "name": "altinity/local-cluster-s3-smallcache",
+  "platform": "altinity",
+  "tier": "local-cluster",
+  "deployment": "compose-1x2-smallcache",
+  "image": "altinity/clickhouse-server:26.3.33.10001.altinitystable",
+  "expected_version": "26.3.33.10001.altinitystable",
+  "dialect": "replicated",
+  "cluster": "ch_eval",
+  "shards": 1,
+  "replicas": 2,
+  "storage": "s3",
+  "storage_policy": "s3_cached",
+  "shape": {
+    "vcpu_per_replica": null,
+    "gib_per_replica": null
+  },
+  "location": "local-docker",
+  "ports": {
+    "native_base": 19600,
+    "http_base": 18723
+  },
+  "dsn_env": "CLICKHOUSE_DSN_ALTINITY_LOCAL_CLUSTER_S3_SMALLCACHE",
+  "notes": "Local tier: correctness, parity and smoke only (ADR-0005). s3 mode with a 256 MiB filesystem cache: the low end of the C2 cache-size sweep.",
+  "keeper_image": "altinity/clickhouse-keeper:26.3.33.10001.altinitystable",
+  "keepers": 3,
+  "mem_bytes_per_node": 2500000000,
+  "s3_cache": {
+    "max_size": "256Mi",
+    "on_write": false
+  }
+}
